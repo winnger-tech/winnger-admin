@@ -8,7 +8,7 @@ const {
   updateProfile,
   updateRestaurantStatus,
   updatePaymentStatus
-} = require('../controllers/restaurantController');
+} = require('../controllers/RestaurantController');
 
 // Register new restaurant
 router.post('/', upload.fields([
