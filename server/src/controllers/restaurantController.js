@@ -126,8 +126,18 @@ class RestaurantController extends BaseController {
         bankingInfo,
         taxInfo,
         menuDetails,
-        hoursOfOperation
+        hoursOfOperation,
+        stripePaymentIntentId
       } = req.body;
+
+      // Verify payment was successful
+      const paymentIntent = await this.stripe.paymentIntents.retrieve(stripePaymentIntentId);
+      if (paymentIntent.status !== 'succeeded') {
+        return res.status(400).json({
+          success: false,
+          message: 'Payment not completed'
+        });
+      }
 
       // Check if email is verified
       const isVerified = await redis.get(`restaurant_email_verified:${email}`);
@@ -138,62 +148,63 @@ class RestaurantController extends BaseController {
         });
       }
 
-      // Start transaction
-      const result = await sequelize.transaction(async (t) => {
-        // Create user
-        const user = await User.create({
-          email,
-          password,
-          userType: 'restaurant',
-          firstName,
-          middleName,
-          lastName,
-          dateOfBirth,
-          cellNumber,
-          streetNameNumber,
-          appUniteNumber,
-          city,
-          province,
-          postalCode
-        }, { transaction: t });
+      // Upload documents
+      const documentUrls = await this.uploadRestaurantDocuments(req.files);
 
-        // Upload documents
-        const documentUrls = await this.uploadRestaurantDocuments(req.files);
-
-        // Create restaurant
-        const restaurant = await Restaurant.create({
-          userId: user.id,
-          identificationType,
-          businessName,
-          businessAddress,
-          businessPhone,
-          businessEmail,
-          bankingInfo,
-          taxInfo: {
-            ...taxInfo,
-            province // Ensure province is included for tax validation
-          },
-          menuDetails,
-          hoursOfOperation,
-          ...documentUrls
-        }, { transaction: t });
-
-        return { user, restaurant };
+      // Create restaurant
+      const restaurant = await Restaurant.create({
+        email,
+        password,
+        firstName,
+        middleName,
+        lastName,
+        dateOfBirth,
+        cellNumber,
+        streetNameNumber,
+        appUniteNumber,
+        city,
+        province,
+        postalCode,
+        identificationType,
+        businessName,
+        businessAddress,
+        businessPhone,
+        businessEmail,
+        bankingInfo,
+        taxInfo,
+        menuDetails,
+        hoursOfOperation,
+        stripePaymentIntentId,
+        paymentStatus: 'completed',
+        status: 'pending',
+        ...documentUrls
       });
 
-      // Send confirmation email
+      // Send confirmation email to restaurant
       await sendEmail({
         to: email,
         subject: 'Registration Submitted Successfully',
         html: emailTemplates.registrationSuccess('Restaurant')
       });
 
+      // Send notification to admin
+      await sendEmail({
+        to: process.env.ADMIN_EMAIL,
+        subject: 'New Restaurant Registration',
+        html: emailTemplates.adminNotification({
+          type: 'Restaurant',
+          businessName,
+          businessEmail,
+          registrationDate: new Date().toISOString()
+        })
+      });
+
       // Delete email verification status from Redis
       await redis.del(`restaurant_email_verified:${email}`);
 
       return this.handleSuccess(res, {
-        userId: result.user.id,
-        restaurantId: result.restaurant.id
+        restaurantId: restaurant.id,
+        status: restaurant.status
       }, 'Restaurant registration successful');
 
     } catch (error) {
@@ -204,18 +215,31 @@ class RestaurantController extends BaseController {
   async uploadRestaurantDocuments(files) {
     const documentUrls = {};
 
-    if (files.businessDocument) {
-      documentUrls.businessDocumentUrl = await this.uploadFile(files.businessDocument[0]);
+    // Required documents
+    if (files.businessLicense) {
+      documentUrls.businessLicenseUrl = await this.uploadFile(files.businessLicense[0], 'restaurants/license');
+    }
+
+    if (files.fssaiCertificate) {
+      documentUrls.fssaiCertificateUrl = await this.uploadFile(files.fssaiCertificate[0], 'restaurants/fssai');
+    }
+
+    if (files.gstCertificate) {
+      documentUrls.gstCertificateUrl = await this.uploadFile(files.gstCertificate[0], 'restaurants/gst');
+    }
+
+    if (files.panCard) {
+      documentUrls.panCardUrl = await this.uploadFile(files.panCard[0], 'restaurants/pan');
     }
 
     if (files.voidCheque) {
-      documentUrls.voidChequeUrl = await this.uploadFile(files.voidCheque[0]);
+      documentUrls.voidChequeUrl = await this.uploadFile(files.voidCheque[0], 'restaurants/banking');
     }
 
     // Handle menu item images
     if (files.menuImages) {
       const menuImageUrls = await Promise.all(
-        files.menuImages.map(file => this.uploadFile(file))
+        files.menuImages.map(file => this.uploadFile(file, 'restaurants/menu'))
       );
       documentUrls.menuImageUrls = menuImageUrls;
     }
@@ -458,6 +482,45 @@ class RestaurantController extends BaseController {
 
     } catch (error) {
       return this.handleError(error, res);
+    }
+  }
+
+  // @desc    Create payment intent for registration fee
+  // @route   POST /api/restaurants/create-payment-intent
+  // @access  Public
+  async createPaymentIntent(req, res) {
+    try {
+      const { email } = req.body;
+
+      // Check if email is verified
+      const isVerified = await redis.get(`restaurant_email_verified:${email}`);
+      if (!isVerified) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please verify your email first'
+        });
+      }
+
+      // Create payment intent
+      const paymentIntent = await this.stripe.paymentIntents.create({
+        amount: 5000, // $50.00 in cents
+        currency: 'usd',
+        metadata: { email },
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      res.status(200).json({
+        success: true,
+        clientSecret: paymentIntent.client_secret
+      });
+    } catch (error) {
+      console.error('Error creating payment intent:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create payment intent'
+      });
     }
   }
 }

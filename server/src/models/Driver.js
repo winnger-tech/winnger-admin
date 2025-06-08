@@ -1,9 +1,14 @@
 const { Model, DataTypes } = require('sequelize');
+const bcrypt = require('bcryptjs');
 
 module.exports = (sequelize) => {
   class Driver extends Model {
     static associate(models) {
-      Driver.belongsTo(models.User, { foreignKey: 'userId' });
+      // No associations needed
+    }
+
+    async comparePassword(candidatePassword) {
+      return await bcrypt.compare(candidatePassword, this.password);
     }
   }
 
@@ -13,12 +18,105 @@ module.exports = (sequelize) => {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true
     },
-    userId: {
-      type: DataTypes.UUID,
+    email: {
+      type: DataTypes.STRING,
       allowNull: false,
-      references: {
-        model: 'Users',
-        key: 'id'
+      unique: true,
+      validate: {
+        isEmail: true
+      }
+    },
+    profilePhotoUrl: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        isLiveCapturePhoto(value) {
+          // The URL should contain a timestamp and device identifier
+          // indicating it was captured live from the camera
+          if (!value.includes('live_capture')) {
+            throw new Error('Profile photo must be captured live through camera');
+          }
+        }
+      }
+    },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    firstName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: [2, 50]
+      }
+    },
+    middleName: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    lastName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: [2, 50]
+      }
+    },
+    dateOfBirth: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      validate: {
+        isAdult(value) {
+          const today = new Date();
+          const birthDate = new Date(value);
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          
+          if (age < 18) {
+            throw new Error('Must be at least 18 years old');
+          }
+        }
+      }
+    },
+    cellNumber: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        is: /^\+1-\d{3}-\d{3}-\d{4}$/
+      }
+    },
+    streetNameNumber: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    appUniteNumber: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    city: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    province: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        isIn: [[
+          'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador',
+          'Nova Scotia', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan',
+          'Northwest Territories', 'Nunavut', 'Yukon'
+        ]]
+      }
+    },
+    
+    postalCode: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        is: /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/
       }
     },
     vehicleType: {
@@ -37,13 +135,11 @@ module.exports = (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: false,
       validate: {
-        async isValidYear(value) {
+        isValidYear(value) {
           const currentYear = new Date().getFullYear();
-          const user = await sequelize.models.User.findByPk(this.userId);
-          
           if (this.vehicleType !== 'Walk' && this.vehicleType !== 'Bike' && this.vehicleType !== 'Scooter') {
-            if (currentYear - value < 25) {
-              throw new Error('Vehicle must be at least 25 years old for meal delivery');
+            if (currentYear - value > 10) {
+              throw new Error('Vehicle must not be older than 10 years');
             }
           }
         }
@@ -64,9 +160,8 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
-        async isValidClass(value) {
-          const user = await sequelize.models.User.findByPk(this.userId);
-          if (user.province === 'Ontario') {
+        isValidClass(value) {
+          if (this.province === 'Ontario') {
             if (!['G', 'G2'].includes(value)) {
               throw new Error('Ontario drivers must have Class G or G2 license');
             }
@@ -149,46 +244,9 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: true
     },
-    backgroundCheckStatus: {
-      type: DataTypes.ENUM('pending', 'in_progress', 'completed', 'failed'),
-      defaultValue: 'pending'
-    },
-    certnApplicantId: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    certnCheckId: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    paymentStatus: {
-      type: DataTypes.ENUM('pending', 'completed', 'failed'),
-      defaultValue: 'pending'
-    },
-    paymentMethod: {
-      type: DataTypes.ENUM('stripe', 'razorpay', 'paypal'),
-      allowNull: false
-    },
-    paymentAmount: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-      defaultValue: 65.00,
-      validate: {
-        equals(value) {
-          if (parseFloat(value) !== 65.00) {
-            throw new Error('Payment amount must be CAD $65.00');
-          }
-        }
-      }
-    },
-    stripePaymentIntentId: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
     bankingInfo: {
       type: DataTypes.JSONB,
       allowNull: false,
-      defaultValue: {},
       validate: {
         hasRequiredFields(value) {
           const required = ['transitNumber', 'institutionNumber', 'accountNumber'];
@@ -197,17 +255,41 @@ module.exports = (sequelize) => {
               throw new Error(`Banking info missing ${field}`);
             }
           }
-          if (!/^\d{3}$/.test(value.transitNumber)) {
-            throw new Error('Transit number must be 3 digits');
+          if (!/^\d{5}$/.test(value.transitNumber)) {
+            throw new Error('Transit number must be 5 digits');
           }
-          if (!/^\d{5}$/.test(value.institutionNumber)) {
-            throw new Error('Institution number must be 5 digits');
+          if (!/^\d{3}$/.test(value.institutionNumber)) {
+            throw new Error('Institution number must be 3 digits');
           }
           if (!/^\d{7,12}$/.test(value.accountNumber)) {
             throw new Error('Account number must be 7-12 digits');
           }
         }
       }
+    },
+    backgroundCheckStatus: {
+      type: DataTypes.ENUM('pending', 'in_progress', 'completed', 'failed'),
+      defaultValue: 'pending'
+    },
+    certnApplicantId: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    stripePaymentIntentId: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    paymentStatus: {
+      type: DataTypes.ENUM('pending', 'completed', 'failed'),
+      defaultValue: 'pending'
+    },
+    status: {
+      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+      defaultValue: 'pending'
+    },
+    emailVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
     },
     consentAndDeclarations: {
       type: DataTypes.JSONB,
@@ -231,7 +313,15 @@ module.exports = (sequelize) => {
     }
   }, {
     sequelize,
-    modelName: 'Driver'
+    modelName: 'Driver',
+    hooks: {
+      beforeSave: async (driver) => {
+        if (driver.changed('password')) {
+          const salt = await bcrypt.genSalt(10);
+          driver.password = await bcrypt.hash(driver.password, salt);
+        }
+      }
+    }
   });
 
   return Driver;

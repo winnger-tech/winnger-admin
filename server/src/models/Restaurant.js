@@ -1,9 +1,14 @@
 const { Model, DataTypes } = require('sequelize');
+const bcrypt = require('bcryptjs');
 
 module.exports = (sequelize) => {
   class Restaurant extends Model {
     static associate(models) {
-      Restaurant.belongsTo(models.User, { foreignKey: 'userId' });
+      // No associations needed
+    }
+
+    async comparePassword(candidatePassword) {
+      return await bcrypt.compare(candidatePassword, this.password);
     }
   }
 
@@ -13,17 +18,85 @@ module.exports = (sequelize) => {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true
     },
-    userId: {
-      type: DataTypes.UUID,
+    email: {
+      type: DataTypes.STRING,
       allowNull: false,
-      references: {
-        model: 'Users',
-        key: 'id'
+      unique: true,
+      validate: {
+        isEmail: true
       }
     },
-    identificationType: {
-      type: DataTypes.ENUM('licence', 'pr_card', 'passport', 'medical_card', 'provincial_id'),
+    password: {
+      type: DataTypes.STRING,
       allowNull: false
+    },
+    firstName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: [2, 50]
+      }
+    },
+    middleName: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    lastName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: [2, 50]
+      }
+    },
+    dateOfBirth: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      validate: {
+        isAdult(value) {
+          const today = new Date();
+          const birthDate = new Date(value);
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          
+          if (age < 21) {
+            throw new Error('Must be at least 21 years old');
+          }
+        }
+      }
+    },
+    cellNumber: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        is: /^\+1-\d{3}-\d{3}-\d{4}$/
+      }
+    },
+    streetNameNumber: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    appUniteNumber: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    city: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    province: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    postalCode: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        is: /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/
+      }
     },
     businessName: {
       type: DataTypes.STRING,
@@ -31,10 +104,6 @@ module.exports = (sequelize) => {
       validate: {
         notEmpty: true
       }
-    },
-    businessDocumentUrl: {
-      type: DataTypes.STRING,
-      allowNull: false
     },
     businessAddress: {
       type: DataTypes.STRING,
@@ -54,6 +123,14 @@ module.exports = (sequelize) => {
         isEmail: true
       }
     },
+    identificationType: {
+      type: DataTypes.ENUM('licence', 'pr_card', 'passport', 'medical_card', 'provincial_id'),
+      allowNull: false
+    },
+    businessDocumentUrl: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
     bankingInfo: {
       type: DataTypes.JSONB,
       allowNull: false,
@@ -65,11 +142,11 @@ module.exports = (sequelize) => {
               throw new Error(`Banking info missing ${field}`);
             }
           }
-          if (!/^\d{3}$/.test(value.transitNumber)) {
-            throw new Error('Transit number must be 3 digits');
+          if (!/^\d{5}$/.test(value.transitNumber)) {
+            throw new Error('Transit number must be 5 digits');
           }
-          if (!/^\d{5}$/.test(value.institutionNumber)) {
-            throw new Error('Institution number must be 5 digits');
+          if (!/^\d{3}$/.test(value.institutionNumber)) {
+            throw new Error('Institution number must be 3 digits');
           }
           if (!/^\d{7,12}$/.test(value.accountNumber)) {
             throw new Error('Account number must be 7-12 digits');
@@ -84,45 +161,13 @@ module.exports = (sequelize) => {
     taxInfo: {
       type: DataTypes.JSONB,
       allowNull: false,
-      defaultValue: {},
       validate: {
-        hasValidTaxNumbers(value) {
-          const province = this.getDataValue('province');
-          const taxRates = {
-            GST: 5,
-            HST: {
-              ON: 13,
-              default: 15
-            },
-            QST: 9.97,
-            PST: {
-              SK: 6,
-              default: 7
+        hasRequiredFields(value) {
+          const required = ['gstNumber', 'pstNumber', 'businessNumber'];
+          for (const field of required) {
+            if (!value[field]) {
+              throw new Error(`Tax info missing ${field}`);
             }
-          };
-
-          // GST Validation
-          if (['AB', 'BC', 'MB', 'QC', 'SK', 'NT', 'YT', 'NU'].includes(province)) {
-            if (!value.gstNumber) throw new Error('GST number required');
-            if (!value.gstRate) value.gstRate = taxRates.GST;
-          }
-
-          // HST Validation
-          if (['NB', 'NL', 'NS', 'ON', 'PE'].includes(province)) {
-            if (!value.hstNumber) throw new Error('HST number required');
-            value.hstRate = province === 'ON' ? taxRates.HST.ON : taxRates.HST.default;
-          }
-
-          // QST Validation
-          if (province === 'QC') {
-            if (!value.qstNumber) throw new Error('QST number required');
-            value.qstRate = taxRates.QST;
-          }
-
-          // PST Validation
-          if (['BC', 'MB', 'SK'].includes(province)) {
-            if (!value.pstNumber) throw new Error('PST number required');
-            value.pstRate = province === 'SK' ? taxRates.PST.SK : taxRates.PST.default;
           }
         }
       }
@@ -130,69 +175,37 @@ module.exports = (sequelize) => {
     menuDetails: {
       type: DataTypes.JSONB,
       allowNull: false,
-      defaultValue: [],
-      validate: {
-        isValidMenu(value) {
-          if (!Array.isArray(value)) {
-            throw new Error('Menu details must be an array');
-          }
-          value.forEach(item => {
-            if (!item.name || !item.price || !item.imageUrl) {
-              throw new Error('Each menu item must have name, price, and image');
-            }
-            if (!item.imageUrl.match(/\.(jpg|jpeg|png)$/i)) {
-              throw new Error('Menu images must be high quality (JPG/PNG format)');
-            }
-            if (typeof item.price !== 'number' || item.price <= 0) {
-              throw new Error('Menu item price must be a positive number');
-            }
-          });
-        }
-      }
+      defaultValue: []
     },
     hoursOfOperation: {
       type: DataTypes.JSONB,
       allowNull: false,
-      defaultValue: [],
-      validate: {
-        isValidHours(value) {
-          if (!Array.isArray(value)) {
-            throw new Error('Hours must be an array');
-          }
-          const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-          const timeFormat = /^([01]\d|2[0-3]):([0-5]\d)$/;
-          
-          value.forEach(schedule => {
-            if (!days.includes(schedule.day)) {
-              throw new Error('Invalid day of week');
-            }
-            if (!timeFormat.test(schedule.openTime) || !timeFormat.test(schedule.closeTime)) {
-              throw new Error('Invalid time format (use HH:MM, 24-hour format)');
-            }
-            
-            const open = schedule.openTime.split(':').map(Number);
-            const close = schedule.closeTime.split(':').map(Number);
-            const openMinutes = open[0] * 60 + open[1];
-            const closeMinutes = close[0] * 60 + close[1];
-            
-            if (closeMinutes <= openMinutes) {
-              throw new Error('Closing time must be after opening time');
-            }
-          });
-        }
-      }
+      defaultValue: []
+    },
+    stripePaymentIntentId: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    paymentStatus: {
+      type: DataTypes.ENUM('pending', 'completed', 'failed'),
+      defaultValue: 'pending'
     },
     status: {
       type: DataTypes.ENUM('pending', 'approved', 'rejected'),
       defaultValue: 'pending'
+    },
+    emailVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
     }
   }, {
     sequelize,
     modelName: 'Restaurant',
     hooks: {
-      beforeValidate: (restaurant) => {
-        if (restaurant.taxInfo && !restaurant.taxInfo.province) {
-          restaurant.taxInfo.province = restaurant.province;
+      beforeSave: async (restaurant) => {
+        if (restaurant.changed('password')) {
+          const salt = await bcrypt.genSalt(10);
+          restaurant.password = await bcrypt.hash(restaurant.password, salt);
         }
       }
     }

@@ -13,7 +13,8 @@ const {
   verifyOTP,
   updateMenuItems,
   updateHours,
-  updateTaxInfo
+  updateTaxInfo,
+  createPaymentIntent
 } = restaurantController;
 
 // Validation middleware
@@ -29,19 +30,25 @@ const validateRestaurantRegistration = [
   body('businessEmail').isEmail().withMessage('Please provide a valid business email'),
   body('bankingInfo').isObject().withMessage('Banking information is required'),
   body('taxInfo').isObject().withMessage('Tax information is required'),
-  body('menuDetails').isArray().withMessage('Menu details must be an array'),
-  body('hoursOfOperation').isArray().withMessage('Hours of operation must be an array')
+  body('menuDetails').isString().withMessage('Menu details must be a JSON string'),
+  body('hoursOfOperation').isString().withMessage('Hours of operation must be a JSON string')
 ];
 
 // Email verification routes
 router.post('/verify-email', sendVerificationCode);
 router.post('/verify-otp', verifyOTP);
 
+// Payment route
+router.post('/create-payment-intent', createPaymentIntent);
+
 // Register new restaurant
 router.post(
   '/',
   upload.fields([
-    { name: 'businessDocuments', maxCount: 5 },
+    { name: 'businessLicense', maxCount: 1 },
+    { name: 'fssaiCertificate', maxCount: 1 },
+    { name: 'gstCertificate', maxCount: 1 },
+    { name: 'panCard', maxCount: 1 },
     { name: 'voidCheque', maxCount: 1 },
     { name: 'menuImages', maxCount: 10 }
   ]),
@@ -51,24 +58,16 @@ router.post(
 
 // Protected routes
 router.use(protect);
-router.get('/profile', getProfile);
-router.put('/profile', updateProfile);
+
+router.route('/profile')
+  .get(getProfile)
+  .put(updateProfile);
+
+router.put('/menu', updateMenuItems);
+router.put('/hours', updateHours);
+router.put('/tax-info', updateTaxInfo);
+
+// Admin routes
 router.put('/:id/status', updateRestaurantStatus);
-
-router.put('/:restaurantId/menu',
-  upload.array('menuImages', 50),
-  body('menuDetails').isArray().withMessage('Menu details must be an array'),
-  updateMenuItems
-);
-
-router.put('/:restaurantId/hours',
-  body('hoursOfOperation').isArray().withMessage('Hours of operation must be an array'),
-  updateHours
-);
-
-router.put('/:restaurantId/tax-info',
-  body('taxInfo').isObject().withMessage('Tax information is required'),
-  updateTaxInfo
-);
 
 module.exports = router; 

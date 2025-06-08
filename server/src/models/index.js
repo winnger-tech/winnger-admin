@@ -5,14 +5,12 @@ const { DataTypes } = require('sequelize');
 const AdminModel = require('./Admin');
 const DriverModel = require('./Driver');
 const RestaurantModel = require('./Restaurant');
-const UserModel = require('./User');
 
 // Initialize models
 const models = {
   Admin: AdminModel(sequelize),
   Driver: DriverModel(sequelize),
-  Restaurant: RestaurantModel(sequelize),
-  User: UserModel(sequelize)
+  Restaurant: RestaurantModel(sequelize)
 };
 
 // Add model associations
