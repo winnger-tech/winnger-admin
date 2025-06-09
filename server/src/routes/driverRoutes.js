@@ -1,48 +1,59 @@
 const express = require('express');
-const router = express.Router();
-const { body } = require('express-validator');
+const multer = require('multer');
+const multerS3 = require('multer-s3');
+const AWS = require('aws-sdk');
 const driverController = require('../controllers/driverController');
-const { protect } = require('../middleware/auth');
-const upload = require('../middleware/upload');
 
-// Validation middleware
-const validateDriverRegistration = [
-  body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('firstName').isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
-  body('lastName').isLength({ min: 2 }).withMessage('Last name must be at least 2 characters'),
-  body('dateOfBirth').isDate().withMessage('Please provide a valid date'),
-  body('cellNumber').matches(/^\+1-\d{3}-\d{3}-\d{4}$/).withMessage('Please provide a valid phone number format: +1-XXX-XXX-XXXX'),
-  body('vehicleType').isIn(['Walk', 'Scooter', 'Bike', 'Car', 'Van', 'Other']).withMessage('Please provide a valid vehicle type'),
-  body('yearOfManufacture').isInt({ min: 1900 }).withMessage('Please provide a valid year'),
-  body('sinNumber').notEmpty().withMessage('SIN number is required'),
-  body('bankingInfo').isObject().withMessage('Banking information is required'),
-  body('consentAndDeclarations').isObject().withMessage('Consent and declarations are required')
-];
+// Setup AWS S3 client
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION
+});
 
-// Routes
-router.post('/register',
-  upload.fields([
-    { name: 'driversLicenseFront', maxCount: 1 },
-    { name: 'driversLicenseBack', maxCount: 1 },
-    { name: 'vehicleRegistration', maxCount: 1 },
-    { name: 'vehicleInsurance', maxCount: 1 },
-    { name: 'drivingAbstract', maxCount: 1 },
-    { name: 'workEligibility', maxCount: 1 },
-    { name: 'sinCard', maxCount: 1 }
-  ]),
-  validateDriverRegistration,
+// Multer with S3
+const upload = multer({
+  storage: multerS3({
+    s3: s3,
+    bucket: process.env.AWS_S3_BUCKET_NAME,
+    acl: 'public-read',
+    metadata: function (req, file, cb) {
+      cb(null, { fieldName: file.fieldname });
+    },
+    key: function (req, file, cb) {
+      cb(null, `${Date.now()}-${file.originalname}`);
+    }
+  })
+});
+
+// Define upload fields
+const uploadFields = upload.fields([
+  { name: 'driversLicenseFront', maxCount: 1 },
+  { name: 'driversLicenseBack', maxCount: 1 },
+  { name: 'vehicleRegistration', maxCount: 1 },
+  { name: 'vehicleInsurance', maxCount: 1 },
+  { name: 'drivingAbstract', maxCount: 1 },
+  { name: 'workEligibility', maxCount: 1 },
+  { name: 'sinCard', maxCount: 1 },
+  { name: 'profilePhoto', maxCount: 1 }
+]);
+
+const router = express.Router();
+
+router.post(
+  '/register',
+  uploadFields,
   driverController.register
 );
 
-router.post('/payment/confirm',
-  protect,
-  body('paymentIntentId').notEmpty().withMessage('Payment intent ID is required'),
+router.post(
+  '/payment/confirm',
   driverController.confirmPayment
 );
 
-router.post('/background-check/webhook',
+router.post(
+  '/background-check/webhook',
   driverController.handleBackgroundCheckWebhook
 );
 
-module.exports = router; 
+module.exports = router;

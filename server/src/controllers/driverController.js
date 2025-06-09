@@ -1,5 +1,5 @@
 const BaseController = require('./BaseController');
-const { User, Driver, sequelize } = require('../models');
+const { Driver, sequelize } = require('../models');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { certnApi } = require('../utils/certnApi');
 
@@ -37,8 +37,12 @@ class DriverController extends BaseController {
         vehicleLicensePlate,
         sinNumber,
         bankingInfo,
-        consentAndDeclarations
+        consentAndDeclarations,
+        driversLicenseClass
       } = req.body;
+
+      const parsedBankingInfo = JSON.parse(bankingInfo);
+      const parsedConsentAndDeclarations = JSON.parse(consentAndDeclarations);
 
       // Create payment intent for background check fee
       const paymentIntent = await this.stripe.paymentIntents.create({
@@ -53,11 +57,14 @@ class DriverController extends BaseController {
 
       // Start transaction
       const result = await sequelize.transaction(async (t) => {
-        // Create user
-        const user = await User.create({
+
+        // Upload documents
+        const documentUrls = await this.uploadDriverDocuments(req.files);
+
+        // Create driver
+        const driver = await Driver.create({
           email,
           password,
-          userType: 'driver',
           firstName,
           middleName,
           lastName,
@@ -67,15 +74,7 @@ class DriverController extends BaseController {
           appUniteNumber,
           city,
           province,
-          postalCode
-        }, { transaction: t });
-
-        // Upload documents
-        const documentUrls = await this.uploadDriverDocuments(req.files);
-
-        // Create driver
-        const driver = await Driver.create({
-          userId: user.id,
+          postalCode,
           vehicleType,
           vehicleMake,
           vehicleModel,
@@ -83,23 +82,31 @@ class DriverController extends BaseController {
           vehicleColor,
           vehicleLicensePlate,
           sinNumber,
-          bankingInfo,
-          consentAndDeclarations,
+          bankingInfo: parsedBankingInfo,
+          consentAndDeclarations: parsedConsentAndDeclarations,
+          driversLicenseClass,
           stripePaymentIntentId: paymentIntent.id,
           ...documentUrls
         }, { transaction: t });
 
-        return { user, driver, paymentIntent };
+        return { driver, paymentIntent };
       });
 
-      return this.handleSuccess(res, {
-        userId: result.user.id,
-        driverId: result.driver.id,
-        clientSecret: result.paymentIntent.client_secret
-      }, 'Driver registration initiated');
+      return res.status(201).json({
+        success: true,
+        data: {
+          driverId: result.driver.id,
+          clientSecret: result.paymentIntent.client_secret
+        },
+        message: 'Driver registration initiated successfully'
+      });
 
     } catch (error) {
-      return this.handleError(error, res);
+      console.error('Driver registration error:', error);
+      return res.status(error.status || 500).json({
+        success: false,
+        message: error.message || 'Failed to register driver'
+      });
     }
   }
 
@@ -126,15 +133,20 @@ class DriverController extends BaseController {
       documentUrls.sinCardUrl = await this.uploadFile(files.sinCard[0]);
     }
 
+    // Profile photo upload
+    if (files.profilePhoto && files.profilePhoto[0]) {
+      documentUrls.profilePhotoUrl = await this.uploadFile(files.profilePhoto[0]);
+    }
+
     return documentUrls;
   }
 
   async confirmPayment(req, res) {
     try {
       const { paymentIntentId } = req.body;
-      
+
       const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
-      
+
       if (paymentIntent.status === 'succeeded') {
         const driver = await Driver.findOne({
           where: { stripePaymentIntentId: paymentIntentId }
@@ -148,19 +160,18 @@ class DriverController extends BaseController {
         await driver.update({ paymentStatus: 'completed' });
 
         // Initiate background check
-        const user = await User.findByPk(driver.userId);
         const applicant = await certnApi.createApplicant({
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phoneNumber: user.cellNumber,
-          dateOfBirth: user.dateOfBirth,
+          firstName: driver.firstName,
+          lastName: driver.lastName,
+          email: driver.email,
+          phoneNumber: driver.cellNumber,
+          dateOfBirth: driver.dateOfBirth,
           address: {
-            streetAddress: user.streetNameNumber,
-            unit: user.appUniteNumber,
-            city: user.city,
-            province: user.province,
-            postalCode: user.postalCode,
+            streetAddress: driver.streetNameNumber,
+            unit: driver.appUniteNumber,
+            city: driver.city,
+            province: driver.province,
+            postalCode: driver.postalCode,
             country: 'CA'
           }
         });

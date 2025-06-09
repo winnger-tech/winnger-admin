@@ -21,29 +21,11 @@ class BaseController {
     }
   }
 
-  async uploadFile(file) {
+  uploadFile(file) {
     if (!file) return null;
-
-    try {
-      const params = {
-        Bucket: process.env.AWS_S3_BUCKET,
-        Key: `${Date.now()}_${file.originalname}`,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-        ACL: 'private'
-      };
-
-      const result = await this.s3.upload(params).promise();
-      return result.Location;
-    } catch (error) {
-      console.error('File upload error:', error);
-      throw {
-        status: 500,
-        message: 'File upload failed',
-        error: error.message
-      };
-    }
+    return Promise.resolve(file.location);
   }
+  
 
   async deleteFile(fileUrl) {
     if (!fileUrl) return;
