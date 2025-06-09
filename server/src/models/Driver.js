@@ -3,9 +3,7 @@ const bcrypt = require('bcryptjs');
 
 module.exports = (sequelize) => {
   class Driver extends Model {
-    static associate(models) {
-      // No associations needed
-    }
+    static associate(models) {}
 
     async comparePassword(candidatePassword) {
       return await bcrypt.compare(candidatePassword, this.password);
@@ -22,22 +20,11 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
-      validate: {
-        isEmail: true
-      }
+      validate: { isEmail: true }
     },
     profilePhotoUrl: {
       type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        isLiveCapturePhoto(value) {
-          // The URL should contain a timestamp and device identifier
-          // indicating it was captured live from the camera
-          if (!value.includes('live_capture')) {
-            throw new Error('Profile photo must be captured live through camera');
-          }
-        }
-      }
+      allowNull: true // No live capture required
     },
     password: {
       type: DataTypes.STRING,
@@ -46,9 +33,7 @@ module.exports = (sequelize) => {
     firstName: {
       type: DataTypes.STRING,
       allowNull: false,
-      validate: {
-        len: [2, 50]
-      }
+      validate: { len: [2, 50] }
     },
     middleName: {
       type: DataTypes.STRING,
@@ -57,9 +42,7 @@ module.exports = (sequelize) => {
     lastName: {
       type: DataTypes.STRING,
       allowNull: false,
-      validate: {
-        len: [2, 50]
-      }
+      validate: { len: [2, 50] }
     },
     dateOfBirth: {
       type: DataTypes.DATE,
@@ -70,11 +53,9 @@ module.exports = (sequelize) => {
           const birthDate = new Date(value);
           let age = today.getFullYear() - birthDate.getFullYear();
           const monthDiff = today.getMonth() - birthDate.getMonth();
-          
           if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
             age--;
           }
-          
           if (age < 18) {
             throw new Error('Must be at least 18 years old');
           }
@@ -84,9 +65,7 @@ module.exports = (sequelize) => {
     cellNumber: {
       type: DataTypes.STRING,
       allowNull: false,
-      validate: {
-        is: /^\+1-\d{3}-\d{3}-\d{4}$/
-      }
+      validate: { is: /^\+1-\d{3}-\d{3}-\d{4}$/ }
     },
     streetNameNumber: {
       type: DataTypes.STRING,
@@ -104,20 +83,13 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
-        isIn: [[
-          'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador',
-          'Nova Scotia', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan',
-          'Northwest Territories', 'Nunavut', 'Yukon'
-        ]]
+        isIn: [['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT']]
       }
     },
-    
     postalCode: {
       type: DataTypes.STRING,
       allowNull: false,
-      validate: {
-        is: /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/
-      }
+      validate: { is: /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/ }
     },
     vehicleType: {
       type: DataTypes.ENUM('Walk', 'Scooter', 'Bike', 'Car', 'Van', 'Other'),
@@ -131,16 +103,18 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false
     },
+    deliveryType: {
+      type: DataTypes.ENUM('Meals', 'Parcel', 'Grocery', 'Other'),
+      allowNull: false
+    },
     yearOfManufacture: {
       type: DataTypes.INTEGER,
       allowNull: false,
       validate: {
         isValidYear(value) {
           const currentYear = new Date().getFullYear();
-          if (this.vehicleType !== 'Walk' && this.vehicleType !== 'Bike' && this.vehicleType !== 'Scooter') {
-            if (currentYear - value > 10) {
-              throw new Error('Vehicle must not be older than 10 years');
-            }
+          if (currentYear - value > 10) {
+            throw new Error('Vehicle must not be older than 10 years');
           }
         }
       }
@@ -152,16 +126,14 @@ module.exports = (sequelize) => {
     vehicleLicensePlate: {
       type: DataTypes.STRING,
       allowNull: false,
-      validate: {
-        is: /^[A-Z0-9]+$/i
-      }
+      validate: { is: /^[A-Z0-9\s-]+$/i }
     },
     driversLicenseClass: {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
         isValidClass(value) {
-          if (this.province === 'Ontario') {
+          if (this.province === 'ON') {
             if (!['G', 'G2'].includes(value)) {
               throw new Error('Ontario drivers must have Class G or G2 license');
             }
@@ -236,9 +208,7 @@ module.exports = (sequelize) => {
     sinNumber: {
       type: DataTypes.STRING,
       allowNull: false,
-      validate: {
-        is: /^\d{9}$/
-      }
+      validate: { is: /^\d{9}$/ }
     },
     sinCardUrl: {
       type: DataTypes.STRING,

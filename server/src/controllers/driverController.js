@@ -32,21 +32,24 @@ class DriverController extends BaseController {
         vehicleType,
         vehicleMake,
         vehicleModel,
+        deliveryType,
         yearOfManufacture,
         vehicleColor,
         vehicleLicensePlate,
+        driversLicenseClass,
+        drivingAbstractDate,
+        workEligibilityType,
         sinNumber,
         bankingInfo,
-        consentAndDeclarations,
-        driversLicenseClass
+        consentAndDeclarations
       } = req.body;
 
       const parsedBankingInfo = JSON.parse(bankingInfo);
       const parsedConsentAndDeclarations = JSON.parse(consentAndDeclarations);
 
-      // Create payment intent for background check fee
+      // Stripe payment intent
       const paymentIntent = await this.stripe.paymentIntents.create({
-        amount: 6500, // $65.00 in cents
+        amount: 6500,
         currency: 'cad',
         payment_method_types: ['card'],
         metadata: {
@@ -55,13 +58,9 @@ class DriverController extends BaseController {
         }
       });
 
-      // Start transaction
       const result = await sequelize.transaction(async (t) => {
-
-        // Upload documents
         const documentUrls = await this.uploadDriverDocuments(req.files);
 
-        // Create driver
         const driver = await Driver.create({
           email,
           password,
@@ -78,13 +77,16 @@ class DriverController extends BaseController {
           vehicleType,
           vehicleMake,
           vehicleModel,
+          deliveryType,
           yearOfManufacture,
           vehicleColor,
           vehicleLicensePlate,
+          driversLicenseClass,
+          drivingAbstractDate,
+          workEligibilityType,
           sinNumber,
           bankingInfo: parsedBankingInfo,
           consentAndDeclarations: parsedConsentAndDeclarations,
-          driversLicenseClass,
           stripePaymentIntentId: paymentIntent.id,
           ...documentUrls
         }, { transaction: t });
@@ -113,6 +115,7 @@ class DriverController extends BaseController {
   async uploadDriverDocuments(files) {
     const documentUrls = {};
     const requiredDocuments = [
+      'profilePhoto',
       'driversLicenseFront',
       'driversLicenseBack',
       'vehicleRegistration',
@@ -122,20 +125,15 @@ class DriverController extends BaseController {
     ];
 
     for (const docType of requiredDocuments) {
-      if (files[docType]) {
-        const url = await this.uploadFile(files[docType][0]);
-        documentUrls[`${docType}Url`] = url;
+      if (files[docType] && files[docType][0]) {
+        documentUrls[`${docType}Url`] = files[docType][0].location;
+      } else {
+        throw new Error(`Missing required document: ${docType}`);
       }
     }
 
-    // Optional documents
-    if (files.sinCard) {
-      documentUrls.sinCardUrl = await this.uploadFile(files.sinCard[0]);
-    }
-
-    // Profile photo upload
-    if (files.profilePhoto && files.profilePhoto[0]) {
-      documentUrls.profilePhotoUrl = await this.uploadFile(files.profilePhoto[0]);
+    if (files.sinCard && files.sinCard[0]) {
+      documentUrls.sinCardUrl = files.sinCard[0].location;
     }
 
     return documentUrls;
@@ -156,10 +154,8 @@ class DriverController extends BaseController {
           throw { status: 404, message: 'Driver not found' };
         }
 
-        // Update payment status
         await driver.update({ paymentStatus: 'completed' });
 
-        // Initiate background check
         const applicant = await certnApi.createApplicant({
           firstName: driver.firstName,
           lastName: driver.lastName,
@@ -212,8 +208,8 @@ class DriverController extends BaseController {
         case 'check.completed':
           await driver.update({
             backgroundCheckStatus: 'completed',
-            criminalBackgroundCheckUrl: data.results.criminalCheck.reportUrl,
-            drivingAbstractUrl: data.results.drivingAbstract.reportUrl
+            criminalBackgroundCheckUrl: data.results?.criminalCheck?.reportUrl,
+            drivingAbstractUrl: data.results?.drivingAbstract?.reportUrl
           });
           break;
 
