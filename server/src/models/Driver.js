@@ -113,8 +113,10 @@ module.exports = (sequelize) => {
       validate: {
         isValidYear(value) {
           const currentYear = new Date().getFullYear();
-          if (currentYear - value > 10) {
-            throw new Error('Vehicle must not be older than 10 years');
+          const vehicleAge = currentYear - value;
+          // Check if delivery type is meals and apply 25 year rule
+          if (this.deliveryType === 'Meals' && vehicleAge > 25) {
+            throw new Error('Vehicle must not be older than 25 years for meals delivery');
           }
         }
       }
@@ -225,11 +227,11 @@ module.exports = (sequelize) => {
               throw new Error(`Banking info missing ${field}`);
             }
           }
-          if (!/^\d{5}$/.test(value.transitNumber)) {
-            throw new Error('Transit number must be 5 digits');
+          if (!/^\d{3}$/.test(value.transitNumber)) {
+            throw new Error('Transit number must be 3 digits');
           }
-          if (!/^\d{3}$/.test(value.institutionNumber)) {
-            throw new Error('Institution number must be 3 digits');
+          if (!/^\d{5}$/.test(value.institutionNumber)) {
+            throw new Error('Institution number must be 5 digits');
           }
           if (!/^\d{7,12}$/.test(value.accountNumber)) {
             throw new Error('Account number must be 7-12 digits');
