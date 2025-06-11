@@ -1,5 +1,6 @@
 'use strict';
 
+/** @type {import('sequelize-cli').Migration} */
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     // Create Admins table
@@ -18,7 +19,6 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
-      
       name: {
         type: Sequelize.STRING,
         allowNull: false
@@ -142,6 +142,10 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
+      deliveryType: {
+        type: Sequelize.ENUM('Meals', 'Parcel', 'Grocery', 'Other'),
+        allowNull: false
+      },
       drivingAbstractUrl: {
         type: Sequelize.STRING,
         allowNull: false
@@ -156,7 +160,7 @@ module.exports = {
       },
       criminalBackgroundCheckDate: {
         type: Sequelize.DATE,
-        allowNull: false
+        allowNull: true
       },
       workEligibilityUrl: {
         type: Sequelize.STRING,
@@ -172,7 +176,7 @@ module.exports = {
       },
       sinCardUrl: {
         type: Sequelize.STRING,
-        allowNull: false
+        allowNull: true
       },
       bankingInfo: {
         type: Sequelize.JSONB,
@@ -215,59 +219,41 @@ module.exports = {
     });
 
     // Create Restaurants table
-    await queryInterface.createTable('restaurants', { // Using lowercase 'restaurants' to match model's tableName
-      id: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, primaryKey: true },
-      
-      // Owner Information
-      ownerName: { type: Sequelize.STRING, allowNull: false },
-      email: { type: Sequelize.STRING, allowNull: false, unique: true },
-      password: { type: Sequelize.STRING, allowNull: false },
-      phone: { type: Sequelize.STRING, allowNull: false },
-      identificationType: { type: Sequelize.ENUM('licence', 'pr_card', 'passport', 'medical_card', 'provincial_id'), allowNull: false },
-      
-      // Business Information
-      restaurantName: { type: Sequelize.STRING, allowNull: false },
-      businessAddress: { type: Sequelize.STRING, allowNull: false },
-      city: { type: Sequelize.STRING, allowNull: false },
-      province: { type: Sequelize.ENUM('AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'), allowNull: false },
-      postalCode: { type: Sequelize.STRING, allowNull: false },
-      
-      // Banking & Tax
-      bankingInfo: { type: Sequelize.JSONB, allowNull: false },
-      taxInfo: { type: Sequelize.JSONB, allowNull: false },
-      
-      // Document URLs
-      businessDocumentUrl: { type: Sequelize.STRING, allowNull: false },
-      businessLicenseUrl: { type: Sequelize.STRING, allowNull: false },
-      voidChequeUrl: { type: Sequelize.STRING, allowNull: false },
-      
-      // Menu & Hours
-      menuDetails: { type: Sequelize.JSONB, allowNull: false },
-      hoursOfOperation: { type: Sequelize.JSONB, allowNull: false },
-      
-      // Payment Information
-      stripePaymentIntentId: { type: Sequelize.STRING, allowNull: true },
-      paymentStatus: { type: Sequelize.ENUM('pending', 'completed', 'failed'), defaultValue: 'pending' },
-      paymentAmount: { type: Sequelize.DECIMAL(10, 2), defaultValue: 50.00 },
-      paymentDate: { type: Sequelize.DATE, allowNull: true },
-      
-      // Status fields
-      status: { type: Sequelize.ENUM('pending', 'approved', 'rejected', 'suspended'), defaultValue: 'pending' },
-      emailVerified: { type: Sequelize.BOOLEAN, defaultValue: false },
-      emailVerificationToken: { type: Sequelize.STRING, allowNull: true },
-      emailVerificationExpires: { type: Sequelize.DATE, allowNull: true },
-      
-      // Metadata
-      approvedAt: { type: Sequelize.DATE, allowNull: true },
-      approvedBy: { type: Sequelize.UUID, allowNull: true },
-      rejectionReason: { type: Sequelize.TEXT, allowNull: true },
-      notes: { type: Sequelize.TEXT, allowNull: true },
-      
-      // Timestamps
-      createdAt: { type: Sequelize.DATE, allowNull: false },
-      updatedAt: { type: Sequelize.DATE, allowNull: false },
-      deletedAt: { type: Sequelize.DATE } // For soft deletes (paranoid: true)
-  });
+    await queryInterface.createTable('restaurants', { // lowercase to match model
+        id: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, primaryKey: true },
+        ownerName: { type: Sequelize.STRING, allowNull: false },
+        email: { type: Sequelize.STRING, allowNull: false, unique: true },
+        password: { type: Sequelize.STRING, allowNull: false },
+        phone: { type: Sequelize.STRING, allowNull: false },
+        identificationType: { type: Sequelize.ENUM('licence', 'pr_card', 'passport', 'medical_card', 'provincial_id'), allowNull: false },
+        restaurantName: { type: Sequelize.STRING, allowNull: false },
+        businessAddress: { type: Sequelize.STRING, allowNull: false },
+        city: { type: Sequelize.STRING, allowNull: false },
+        province: { type: Sequelize.ENUM('AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'), allowNull: false },
+        postalCode: { type: Sequelize.STRING, allowNull: false },
+        bankingInfo: { type: Sequelize.JSONB, allowNull: false },
+        taxInfo: { type: Sequelize.JSONB, allowNull: false },
+        businessDocumentUrl: { type: Sequelize.STRING, allowNull: false },
+        businessLicenseUrl: { type: Sequelize.STRING, allowNull: false },
+        voidChequeUrl: { type: Sequelize.STRING, allowNull: false },
+        menuDetails: { type: Sequelize.JSONB, allowNull: false },
+        hoursOfOperation: { type: Sequelize.JSONB, allowNull: false },
+        stripePaymentIntentId: { type: Sequelize.STRING, allowNull: true },
+        paymentStatus: { type: Sequelize.ENUM('pending', 'completed', 'failed'), defaultValue: 'pending' },
+        paymentAmount: { type: Sequelize.DECIMAL(10, 2), defaultValue: 50.00 },
+        paymentDate: { type: Sequelize.DATE, allowNull: true },
+        status: { type: Sequelize.ENUM('pending', 'approved', 'rejected', 'suspended'), defaultValue: 'pending' },
+        emailVerified: { type: Sequelize.BOOLEAN, defaultValue: false },
+        emailVerificationToken: { type: Sequelize.STRING, allowNull: true },
+        emailVerificationExpires: { type: Sequelize.DATE, allowNull: true },
+        approvedAt: { type: Sequelize.DATE, allowNull: true },
+        approvedBy: { type: Sequelize.UUID, allowNull: true },
+        rejectionReason: { type: Sequelize.TEXT, allowNull: true },
+        notes: { type: Sequelize.TEXT, allowNull: true },
+        createdAt: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
+        updatedAt: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
+        deletedAt: { type: Sequelize.DATE }
+    });
   },
 
   down: async (queryInterface, Sequelize) => {
@@ -275,4 +261,4 @@ module.exports = {
     await queryInterface.dropTable('Drivers');
     await queryInterface.dropTable('Admins');
   }
-}; 
+};

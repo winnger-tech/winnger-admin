@@ -14,8 +14,10 @@ class DriverController extends BaseController {
 
   async register(req, res) {
     try {
+      console.log('📥 Received files:', req.files);     // Logs profilePhoto, licenceFront, etc.
+      console.log('📝 Received body:', req.body);  
       this.validateRequest(req);
-
+  
       const {
         email,
         password,
@@ -32,7 +34,6 @@ class DriverController extends BaseController {
         vehicleType,
         vehicleMake,
         vehicleModel,
-        deliveryType,
         yearOfManufacture,
         vehicleColor,
         vehicleLicensePlate,
@@ -43,24 +44,14 @@ class DriverController extends BaseController {
         bankingInfo,
         consentAndDeclarations
       } = req.body;
-
+  
       const parsedBankingInfo = JSON.parse(bankingInfo);
       const parsedConsentAndDeclarations = JSON.parse(consentAndDeclarations);
-
-      // Stripe payment intent
-      const paymentIntent = await this.stripe.paymentIntents.create({
-        amount: 6500,
-        currency: 'cad',
-        payment_method_types: ['card'],
-        metadata: {
-          registration_type: 'driver',
-          email: email
-        }
-      });
-
+  
+      // Create driver without payment intent
       const result = await sequelize.transaction(async (t) => {
         const documentUrls = await this.uploadDriverDocuments(req.files);
-
+  
         const driver = await Driver.create({
           email,
           password,
@@ -77,7 +68,7 @@ class DriverController extends BaseController {
           vehicleType,
           vehicleMake,
           vehicleModel,
-          deliveryType,
+          deliveryType: 'Meals', // Default value
           yearOfManufacture,
           vehicleColor,
           vehicleLicensePlate,
@@ -87,22 +78,21 @@ class DriverController extends BaseController {
           sinNumber,
           bankingInfo: parsedBankingInfo,
           consentAndDeclarations: parsedConsentAndDeclarations,
-          stripePaymentIntentId: paymentIntent.id,
+          paymentStatus: 'pending', // Set as pending
           ...documentUrls
         }, { transaction: t });
-
-        return { driver, paymentIntent };
+  
+        return driver;
       });
-
+  
       return res.status(201).json({
         success: true,
         data: {
-          driverId: result.driver.id,
-          clientSecret: result.paymentIntent.client_secret
+          driverId: result.id
         },
-        message: 'Driver registration initiated successfully'
+        message: 'Driver registration submitted successfully. Please complete payment.'
       });
-
+  
     } catch (error) {
       console.error('Driver registration error:', error);
       return res.status(error.status || 500).json({
@@ -111,6 +101,7 @@ class DriverController extends BaseController {
       });
     }
   }
+  
 
   async uploadDriverDocuments(files) {
     const documentUrls = {};
@@ -121,9 +112,10 @@ class DriverController extends BaseController {
       'vehicleRegistration',
       'vehicleInsurance',
       'drivingAbstract',
+      'criminalBackgroundCheck', // ADDED
       'workEligibility'
     ];
-
+  
     for (const docType of requiredDocuments) {
       if (files[docType] && files[docType][0]) {
         documentUrls[`${docType}Url`] = files[docType][0].location;
@@ -131,31 +123,42 @@ class DriverController extends BaseController {
         throw new Error(`Missing required document: ${docType}`);
       }
     }
-
+  
     if (files.sinCard && files.sinCard[0]) {
       documentUrls.sinCardUrl = files.sinCard[0].location;
     }
-
+  
     return documentUrls;
   }
+  
 
   async confirmPayment(req, res) {
     try {
-      const { paymentIntentId } = req.body;
-
+      const { driverId, paymentIntentId } = req.body;
+  
+      // Verify the payment with Stripe
       const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
-
-      if (paymentIntent.status === 'succeeded') {
-        const driver = await Driver.findOne({
-          where: { stripePaymentIntentId: paymentIntentId }
-        });
-
-        if (!driver) {
-          throw { status: 404, message: 'Driver not found' };
-        }
-
-        await driver.update({ paymentStatus: 'completed' });
-
+  
+      if (paymentIntent.status !== 'succeeded') {
+        throw { status: 400, message: 'Payment not completed' };
+      }
+  
+      // Find and update driver
+      const driver = await Driver.findByPk(driverId);
+      if (!driver) {
+        throw { status: 404, message: 'Driver not found' };
+      }
+  
+      // Verify this payment belongs to this driver
+      if (driver.stripePaymentIntentId !== paymentIntentId) {
+        throw { status: 400, message: 'Payment mismatch' };
+      }
+  
+      // Update payment status
+      await driver.update({ paymentStatus: 'completed' });
+  
+      // Initiate background check
+      try {
         const applicant = await certnApi.createApplicant({
           firstName: driver.firstName,
           lastName: driver.lastName,
@@ -169,24 +172,33 @@ class DriverController extends BaseController {
             province: driver.province,
             postalCode: driver.postalCode,
             country: 'CA'
+          },
+          documents: {
+            driverLicense: driver.driversLicenseNumber,
+            sinNumber: driver.sinNumber
           }
         });
-
-        const check = await certnApi.requestBackgroundCheck(applicant.id);
-
+  
+        const check = await certnApi.requestBackgroundCheck({
+          type: 'criminal',
+          applicantId: applicant.id,
+          callbackUrl: `${process.env.API_URL}/api/drivers/background-check-webhook`
+        });
+  
         await driver.update({
           certnApplicantId: applicant.id,
-          certnCheckId: check.id,
           backgroundCheckStatus: 'in_progress'
         });
-
-        return this.handleSuccess(res, {
-          message: 'Payment confirmed and background check initiated'
-        });
+      } catch (bgError) {
+        console.error('Background check initiation failed:', bgError);
+        // Don't fail the payment confirmation if background check fails
       }
-
-      throw { status: 400, message: 'Payment not succeeded' };
-
+  
+      return res.json({
+        success: true,
+        message: 'Payment confirmed successfully'
+      });
+  
     } catch (error) {
       return this.handleError(error, res);
     }

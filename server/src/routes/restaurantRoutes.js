@@ -1,9 +1,14 @@
+// server/src/routes/restaurantRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const restaurantController = require('../controllers/RestaurantController');
 const { protect } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+
+// ‼️ STEP 1: Import the specific middleware, not the entire module
+const { restaurantUpload } = require('../middleware/upload');
+
 const {
   registerRestaurant,
   getProfile,
@@ -17,7 +22,7 @@ const {
   createPaymentIntent
 } = restaurantController;
 
-// Validation middleware
+// Validation middleware (no changes needed here)
 const validateRestaurantRegistration = [
   body('email').isEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
@@ -42,21 +47,16 @@ router.post('/verify-otp', verifyOTP);
 router.post('/create-payment-intent', createPaymentIntent);
 
 // Register new restaurant
+// ‼️ STEP 2: Use the 'restaurantUpload' variable directly.
+// The .fields() configuration is now handled inside middleware/upload.js
 router.post(
   '/',
-  upload.fields([
-    { name: 'businessLicense', maxCount: 1 },
-    { name: 'fssaiCertificate', maxCount: 1 },
-    { name: 'gstCertificate', maxCount: 1 },
-    { name: 'panCard', maxCount: 1 },
-    { name: 'voidCheque', maxCount: 1 },
-    { name: 'menuImages', maxCount: 10 }
-  ]),
+  restaurantUpload,
   validateRestaurantRegistration,
   registerRestaurant
 );
 
-// Protected routes
+// Protected routes (no changes needed here)
 router.use(protect);
 
 router.route('/profile')
@@ -67,7 +67,7 @@ router.put('/menu', updateMenuItems);
 router.put('/hours', updateHours);
 router.put('/tax-info', updateTaxInfo);
 
-// Admin routes
+// Admin routes (no changes needed here)
 router.put('/:id/status', updateRestaurantStatus);
 
-module.exports = router; 
+module.exports = router;

@@ -4,6 +4,7 @@ const { sendEmail, sendVerificationEmail, emailTemplates } = require('../utils/e
 const redis = require('../config/redis');
 const BaseController = require('./BaseController');
 const { User } = require('../models');
+const { sequelize } = require('../config/database'); // ADD THIS LINE
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 class RestaurantController extends BaseController {
@@ -102,150 +103,83 @@ class RestaurantController extends BaseController {
   // @route   POST /api/restaurants
   // @access  Public
   async registerRestaurant(req, res) {
+    const t = await sequelize.transaction();
     try {
-      this.validateRequest(req);
+        this.validateRequest(req);
 
-      const {
-        email,
-        password,
-        firstName,
-        middleName,
-        lastName,
-        dateOfBirth,
-        cellNumber,
-        streetNameNumber,
-        appUniteNumber,
-        city,
-        province,
-        postalCode,
-        identificationType,
-        businessName,
-        businessAddress,
-        businessPhone,
-        businessEmail,
-        bankingInfo,
-        taxInfo,
-        menuDetails,
-        hoursOfOperation,
-        stripePaymentIntentId
-      } = req.body;
+        const {
+            ownerName, email, password, phone, identificationType,
+            restaurantName, businessAddress, city, province, postalCode,
+            bankingInfo, taxInfo, menuDetails, hoursOfOperation,
+            stripePaymentIntentId
+        } = req.body;
 
-      // Verify payment was successful
-      const paymentIntent = await this.stripe.paymentIntents.retrieve(stripePaymentIntentId);
-      if (paymentIntent.status !== 'succeeded') {
-        return res.status(400).json({
-          success: false,
-          message: 'Payment not completed'
-        });
-      }
+        // Verify payment
+        const paymentIntent = await this.stripe.paymentIntents.retrieve(stripePaymentIntentId);
+        if (paymentIntent.status !== 'succeeded') {
+            await t.rollback();
+            return this.handleError({ status: 400, message: 'Payment not completed' }, res);
+        }
 
-      // Check if email is verified
-      const isVerified = await redis.get(`restaurant_email_verified:${email}`);
-      if (!isVerified) {
-        return res.status(400).json({
-          success: false,
-          message: 'Please verify your email first'
-        });
-      }
+        // Handle file uploads
+        const documentUrls = this.uploadRestaurantDocuments(req.files);
 
-      // Upload documents
-      const documentUrls = await this.uploadRestaurantDocuments(req.files);
+        // Create restaurant
+        const restaurant = await Restaurant.create({
+            ownerName, email, password, phone, identificationType,
+            restaurantName, businessAddress, city, province, postalCode,
+            bankingInfo: JSON.parse(bankingInfo),
+            taxInfo: JSON.parse(taxInfo),
+            menuDetails: JSON.parse(menuDetails),
+            hoursOfOperation: JSON.parse(hoursOfOperation),
+            paymentStatus: 'completed',
+            paymentAmount: paymentIntent.amount / 100, // store amount in dollars
+            paymentDate: new Date(),
+            stripePaymentIntentId,
+            emailVerified: true,
+            ...documentUrls
+        }, { transaction: t });
 
-      // Create restaurant
-      const restaurant = await Restaurant.create({
-        email,
-        password,
-        firstName,
-        middleName,
-        lastName,
-        dateOfBirth,
-        cellNumber,
-        streetNameNumber,
-        appUniteNumber,
-        city,
-        province,
-        postalCode,
-        identificationType,
-        businessName,
-        businessAddress,
-        businessPhone,
-        businessEmail,
-        bankingInfo,
-        taxInfo,
-        menuDetails,
-        hoursOfOperation,
-        stripePaymentIntentId,
-        paymentStatus: 'completed',
-        status: 'pending',
-        ...documentUrls
-      });
-
-      // Send confirmation email to restaurant
-      await sendEmail({
-        to: email,
-        subject: 'Registration Submitted Successfully',
-        html: emailTemplates.registrationSuccess('Restaurant')
-      });
-
-      // Send notification to admin
-      await sendEmail({
-        to: process.env.ADMIN_EMAIL,
-        subject: 'New Restaurant Registration',
-        html: emailTemplates.adminNotification({
-          type: 'Restaurant',
-          businessName,
-          businessEmail,
-          registrationDate: new Date().toISOString()
-        })
-      });
-
-      // Delete email verification status from Redis
-      await redis.del(`restaurant_email_verified:${email}`);
-
-      return this.handleSuccess(res, {
-        restaurantId: restaurant.id,
-        status: restaurant.status
-      }, 'Restaurant registration successful');
+        await t.commit();
+        return this.handleSuccess(res, { restaurantId: restaurant.id }, 'Restaurant registration successful');
 
     } catch (error) {
-      return this.handleError(error, res);
+        await t.rollback();
+        return this.handleError(error, res);
     }
+}
+
+uploadRestaurantDocuments(files) {
+  const documentUrls = {};
+
+  // Handle mandatory file uploads as defined in your model
+  if (files.businessDocument && files.businessDocument[0]) {
+      documentUrls.businessDocumentUrl = files.businessDocument[0].location;
+  } else {
+      throw new Error('Missing required document: Business Document');
   }
 
-  async uploadRestaurantDocuments(files) {
-    const documentUrls = {};
-
-    // Required documents
-    if (files.businessLicense) {
-      documentUrls.businessLicenseUrl = await this.uploadFile(files.businessLicense[0], 'restaurants/license');
-    }
-
-    if (files.fssaiCertificate) {
-      documentUrls.fssaiCertificateUrl = await this.uploadFile(files.fssaiCertificate[0], 'restaurants/fssai');
-    }
-
-    if (files.gstCertificate) {
-      documentUrls.gstCertificateUrl = await this.uploadFile(files.gstCertificate[0], 'restaurants/gst');
-    }
-
-    if (files.panCard) {
-      documentUrls.panCardUrl = await this.uploadFile(files.panCard[0], 'restaurants/pan');
-    }
-
-    if (files.voidCheque) {
-      documentUrls.voidChequeUrl = await this.uploadFile(files.voidCheque[0], 'restaurants/banking');
-    }
-
-    // Handle menu item images
-    if (files.menuImages) {
-      const menuImageUrls = await Promise.all(
-        files.menuImages.map(file => this.uploadFile(file, 'restaurants/menu'))
-      );
-      documentUrls.menuImageUrls = menuImageUrls;
-    }
-
-    return documentUrls;
+  if (files.voidCheque && files.voidCheque[0]) {
+      documentUrls.voidChequeUrl = files.voidCheque[0].location;
+  } else {
+      throw new Error('Missing required document: Void Cheque');
   }
+  
+  if (files.businessLicense && files.businessLicense[0]) {
+      documentUrls.businessLicenseUrl = files.businessLicense[0].location;
+  } else {
+      throw new Error('Missing required document: Business License');
+  }
+
+  // Handle optional menu images
+  if (files.menuImages && files.menuImages.length > 0) {
+      // Note: Your model does not have a column for menuImageUrls. 
+      // This logic is here if you decide to add it later.
+      // documentUrls.menuImageUrls = files.menuImages.map(file => file.location);
+  }
+
+  return documentUrls;
+}
 
   // @desc    Get restaurant profile
   // @route   GET /api/restaurants/profile

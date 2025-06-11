@@ -64,24 +64,24 @@ module.exports = (sequelize) => {
         notEmpty: true
       }
     },
-    businessEmail: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        isEmail: true
-      }
-    },
-    businessPhone: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        isValidPhone(value) {
-          if (!/^\+?1?\d{10,14}$/.test(value.replace(/[\s\-\(\)]/g, ''))) {
-            throw new Error('Invalid phone number format');
-          }
-        }
-      }
-    },
+    // businessEmail: {
+    //   type: DataTypes.STRING,
+    //   allowNull: false,
+    //   validate: {
+    //     isEmail: true
+    //   }
+    // },
+    // businessPhone: {
+    //   type: DataTypes.STRING,
+    //   allowNull: false,
+    //   validate: {
+    //     isValidPhone(value) {
+    //       if (!/^\+?1?\d{10,14}$/.test(value.replace(/[\s\-\(\)]/g, ''))) {
+    //         throw new Error('Invalid phone number format');
+    //       }
+    //     }
+    //   }
+    // },
     businessAddress: {
       type: DataTypes.STRING,
       allowNull: false
@@ -163,18 +163,18 @@ module.exports = (sequelize) => {
       allowNull: false,
       comment: 'Bank statement or business card PDF'
     },
-    fssaiCertificateUrl: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    gstCertificateUrl: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    panCardUrl: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
+    // fssaiCertificateUrl: {
+    //   type: DataTypes.STRING,
+    //   allowNull: false
+    // },
+    // gstCertificateUrl: {
+    //   type: DataTypes.STRING,
+    //   allowNull: false
+    // },
+    // panCardUrl: {
+    //   type: DataTypes.STRING,
+    //   allowNull: false
+    // },
     businessLicenseUrl: {
       type: DataTypes.STRING,
       allowNull: false
