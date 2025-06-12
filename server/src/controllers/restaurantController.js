@@ -457,7 +457,8 @@ uploadRestaurantDocuments(files) {
 
       res.status(200).json({
         success: true,
-        clientSecret: paymentIntent.client_secret
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id 
       });
     } catch (error) {
       console.error('Error creating payment intent:', error);

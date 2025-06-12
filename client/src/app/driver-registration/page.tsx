@@ -1,7 +1,11 @@
 "use client";
 
 import DriverRegistration from '@/components/driver/DriverRegistration';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import styled from 'styled-components';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function DriverRegistrationPage() {
   const handleSubmit = (data: any) => {
@@ -17,7 +21,11 @@ export default function DriverRegistrationPage() {
           Join our network of professional drivers and start earning on your own schedule.
           Fill out the form below to begin your registration process.
         </PageDescription>
-        <DriverRegistration onSubmit={handleSubmit} />
+        {/*<DriverRegistration onSubmit={handleSubmit} />*/}
+
+        <Elements stripe={stripePromise}>
+          <DriverRegistration onSubmit={handleSubmit} />
+        </Elements>
       </ContentWrapper>
     </PageContainer>
   );

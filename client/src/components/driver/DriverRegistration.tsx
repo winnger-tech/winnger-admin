@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { UploadCloud, Plus, Trash2 } from 'lucide-react';
+// Import Stripe hooks and the CardElement component
+import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 const provinceOptions = [
   { value: 'AB', label: 'Alberta' },
@@ -119,12 +121,16 @@ const GoogleMapsPicker = ({ label, onAddressSelect, error, required }) => (
 
 // Payment Form Component
 const PaymentForm = ({ driverId, onSuccess, onError }) => {
+  // Get hooks from Stripe for payment processing
+  const stripe = useStripe();
+  const elements = useElements();
   const [processing, setProcessing] = useState(false);
   const [clientSecret, setClientSecret] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
   const [cardholderName, setCardholderName] = useState('');
+  const [paymentError, setPaymentError] = useState(null);
 
   // Create payment intent when component mounts
   React.useEffect(() => {
@@ -162,45 +168,61 @@ const PaymentForm = ({ driverId, onSuccess, onError }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!clientSecret) {
-      onError({ message: 'Payment not ready. Please try again.' });
+
+    // Prevent submission if Stripe.js hasn't loaded or a payment intent wasn't created
+    if (!stripe || !elements || !clientSecret) {
+      onError({ message: 'Payment system is not ready. Please try again in a moment.' });
       return;
     }
 
     setProcessing(true);
-    
-    try {
-      // In a real implementation, you'd use Stripe Elements here
-      // For now, simulate payment confirmation with your backend
-      console.log('Confirming payment for driver:', driverId);
-      
-      const response = await fetch('/api/drivers/confirm-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          driverId,
-          paymentIntentId: clientSecret.split('_secret_')[0], // Extract payment intent ID
-        }),
-      });
+    setPaymentError(null);
 
-      console.log('Payment confirmation response status:', response.status);
-      const result = await response.json();
-      console.log('Payment confirmation response data:', result);
-      
-      if (result.success) {
-        onSuccess();
-      } else {
-        onError({ message: result.message || 'Payment failed' });
-      }
-    } catch (error) {
-      console.error('Payment confirmation error:', error);
-      onError({ message: 'Payment processing failed. Please check if the backend server is running.' });
-    } finally {
+    // Get a reference to the mounted CardElement
+    const cardElement = elements.getElement(CardElement);
+
+    // Use the clientSecret from the PaymentIntent and the CardElement to confirm the payment
+    const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: {
+        card: cardElement,
+        billing_details: {
+          name: cardholderName,
+        },
+      },
+    });
+
+    if (stripeError) {
+      // Show error to your customer (e.g., insufficient funds, incorrect card details)
+      console.error(stripeError);
+      setPaymentError(stripeError.message || 'An unexpected error occurred.');
       setProcessing(false);
+      return;
     }
+
+    // If the payment is successful, confirm it on the backend
+    if (paymentIntent.status === 'succeeded') {
+      console.log('Payment succeeded:', paymentIntent);
+      // This server-side call confirms the payment and triggers the background check
+      try {
+        const response = await fetch('/api/drivers/confirm-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ driverId, paymentIntentId: paymentIntent.id }),
+        });
+        const result = await response.json();
+        if (result.success) {
+            onSuccess(); // Payment and confirmation successful, redirect to success page
+        } else {
+            setPaymentError(result.message || 'Payment succeeded, but server confirmation failed.');
+        }
+      } catch (confirmError) {
+        setPaymentError('Payment was successful, but confirmation failed. Please contact support.');
+      }
+    } else {
+      setPaymentError(`Payment status: ${paymentIntent.status}. Please try again.`);
+    }
+
+    setProcessing(false);
   };
 
   return (
@@ -222,8 +244,26 @@ const PaymentForm = ({ driverId, onSuccess, onError }) => {
               required
             />
           </div>
-          
           <div style={formGroupStyle}>
+            <label style={labelStyle}>Card Details</label>
+            {/* The CardElement replaces all individual card fields.
+              It is a single, secure iframe controlled by Stripe.
+            */}
+            <div style={cardElementStyle}>
+              <CardElement options={CARD_ELEMENT_OPTIONS} />
+            </div>
+          </div>
+          
+          {paymentError && (
+            <div style={paymentInfoStyle}>
+              <p style={{ ...paymentInfoTextStyle, color: '#e74c3c' }}>
+                Error: {paymentError}
+              </p>
+            </div>
+          )}
+        </div>
+          
+          {/*<div style={formGroupStyle}>
             <label style={labelStyle}>Card Number</label>
             <input
               type="text"
@@ -271,16 +311,16 @@ const PaymentForm = ({ driverId, onSuccess, onError }) => {
               </p>
             </div>
           )}
-        </div>
+        </div>  */}
         
         <button 
           type="submit" 
           style={{
             ...payButtonStyle,
             backgroundColor: processing ? '#bdc3c7' : '#27ae60',
-            cursor: processing || !clientSecret ? 'not-allowed' : 'pointer'
+            cursor: processing || !clientSecret || !stripe ? 'not-allowed' : 'pointer'
           }}
-          disabled={processing || !clientSecret}
+          disabled={processing || !clientSecret || !stripe}
         >
           {processing ? "Processing Payment..." : "Pay CAD $65 and Complete Registration"}
         </button>
@@ -1418,4 +1458,56 @@ const pageDescriptionStyle = {
   marginBottom: '3rem',
   lineHeight: '1.6',
 };
+// Style options for the CardElement
+const CARD_ELEMENT_OPTIONS = {
+  style: {
+    base: {
+      color: '#32325d',
+      fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+      fontSmoothing: 'antialiased',
+      fontSize: '16px',
+      '::placeholder': {
+        color: '#aab7c4'
+      }
+    },
+    invalid: {
+      color: '#fa755a',
+      iconColor: '#fa755a'
+    }
+  }
+};
+
+// const formContainerStyle = { maxWidth: '800px', margin: '2rem auto', padding: '2.5rem', backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)', color: '#333' };
+// const progressBarStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', position: 'relative' };
+// const progressStepStyle = { width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', transition: 'background-color 0.3s ease', position: 'relative', zIndex: 2 };
+// const sectionTitleStyle = { fontSize: '1.5rem', fontWeight: '600', color: '#2980b9', marginBottom: '2rem', borderLeft: '4px solid #3498db', paddingLeft: '1rem' };
+// const subSectionTitleStyle = { fontSize: '1.2rem', fontWeight: '600', color: '#34495e', marginTop: '2rem', marginBottom: '1.5rem' };
+// const formGroupStyle = { marginBottom: '1.25rem', display: 'flex', flexDirection: 'column' };
+// const labelStyle = { marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.95rem', color: '#555' };
+// const inputStyle = { width: '100%', padding: '0.75rem 1rem', border: '1px solid #bdc3c7', borderRadius: '6px', fontSize: '1rem', transition: 'border-color 0.2s ease, box-shadow 0.2s ease', outline: 'none', boxSizing: 'border-box' };
+// const formRowStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1rem' };
+// const errorTextStyle = { color: '#e74c3c', fontSize: '0.85rem', marginTop: '0.25rem' };
+// const uploadWrapperStyle = { position: 'relative', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.5rem', border: '2px dashed #bdc3c7', borderRadius: '8px', cursor: 'pointer', transition: 'border-color 0.3s ease', backgroundColor: '#f8f9fa', minHeight: '60px' };
+// const uploadTextStyle = { color: '#7f8c8d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+// const fileInputStyle = { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' };
+// const paymentInfoStyle = { padding: '1rem', backgroundColor: '#f8d7da', borderRadius: '6px', margin: '1.5rem 0', borderLeft: '4px solid #e74c3c' };
+// const paymentInfoTextStyle = { margin: '0.5rem 0', color: '#721c24', fontWeight: '600' };
+// const paymentInfoSubTextStyle = { margin: '0.5rem 0', color: '#1565c0' };
+// const consentSectionStyle = { backgroundColor: '#f8f9fa', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e9ecef' };
+// const consentItemStyle = { display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '1rem', cursor: 'pointer' };
+// const checkboxStyle = { marginTop: '0.125rem', width: 'auto' };
+// const consentLabelStyle = { color: '#495057', lineHeight: '1.5' };
+// const errorBannerStyle = { backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', color: '#721c24', padding: '1rem', borderRadius: '6px', margin: '1.5rem 0' };
+// const buttonContainerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem', borderTop: '1px solid #ecf0f1', paddingTop: '2rem' };
+// const actionButtonStyle = { padding: '0.8rem 2rem', border: 'none', borderRadius: '6px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.2s ease', backgroundColor: '#3498db', color: 'white', minWidth: '140px' };
+// const stepContentStyle = { minHeight: '400px', animation: 'fadeIn 0.3s ease-in-out' };
+// const paymentContainerStyle = { textAlign: 'center', padding: '2rem' };
+// const paymentDescStyle = { color: '#7f8c8d', marginBottom: '1rem' };
+// const paymentAmountStyle = { color: '#27ae60', fontSize: '1.3rem', margin: '1.5rem 0' };
+// const cardFormStyle = { backgroundColor: '#f8f9fa', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e9ecef', margin: '1.5rem 0', textAlign: 'left' };
+// const payButtonStyle = { width: '100%', marginTop: '1rem', padding: '1rem 2rem', border: 'none', borderRadius: '6px', fontSize: '1.1rem', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.3s ease', color: 'white' };
+// const errorMessageStyle = { color: '#e74c3c', fontSize: '0.9rem', textAlign: 'center', marginTop: '1rem', padding: '0.75rem', backgroundColor: '#fadbd8', borderRadius: '6px' };
+const cardElementStyle = { padding: '12px', border: '1px solid #ced4da', borderRadius: '6px', backgroundColor: 'white' };
+
+//export default DriverRegistration;
 export default DriverRegistration;
