@@ -681,7 +681,7 @@ const DriverRegistration = ({ onSubmit }) => {
 
   return (
     <div style={formContainerStyle}>
-      <h2 style={mainTitleStyle}>Driver Registration</h2>
+      {/*<h2 style={mainTitleStyle}>Driver Registration</h2>*/}
       
       {/* Progress Bar */}
       <div style={progressBarStyle}>
@@ -1372,25 +1372,25 @@ const errorMessageStyle = {
   borderRadius: '6px',
 };
 
-export default function DriverRegistrationPage() {
-  const handleSubmit = (data) => {
-    console.log('Form submitted:', data);
-    // Add any additional handling here
-  };
+// export default function DriverRegistrationPage() {
+//   const handleSubmit = (data) => {
+//     console.log('Form submitted:', data);
+//     // Add any additional handling here
+//   };
 
-  return (
-    <div style={pageContainerStyle}>
-      <div style={contentWrapperStyle}>
-        <h1 style={pageTitleStyle}>Driver Registration</h1>
-        <p style={pageDescriptionStyle}>
-          Join our network of professional drivers and start earning on your own schedule.
-          Fill out the form below to begin your registration process.
-        </p>
-        <DriverRegistration onSubmit={handleSubmit} />
-      </div>
-    </div>
-  );
-}
+//   return (
+//     <div style={pageContainerStyle}>
+//       <div style={contentWrapperStyle}>
+//         <h1 style={pageTitleStyle}>Driver Registration</h1>
+//         <p style={pageDescriptionStyle}>
+//           Join our network of professional drivers and start earning on your own schedule.
+//           Fill out the form below to begin your registration process.
+//         </p>
+//         <DriverRegistration onSubmit={handleSubmit} />
+//       </div>
+//     </div>
+//   );
+// }
 
 // Add page-level styles
 const pageContainerStyle = {
@@ -1418,3 +1418,4 @@ const pageDescriptionStyle = {
   marginBottom: '3rem',
   lineHeight: '1.6',
 };
+export default DriverRegistration;
