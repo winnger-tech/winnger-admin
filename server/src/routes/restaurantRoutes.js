@@ -24,19 +24,24 @@ const {
 
 // Validation middleware (no changes needed here)
 const validateRestaurantRegistration = [
+  body('ownerName').notEmpty().withMessage('Owner name is required'),
   body('email').isEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('firstName').isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
-  body('lastName').isLength({ min: 2 }).withMessage('Last name must be at least 2 characters'),
-  body('dateOfBirth').isDate().withMessage('Please provide a valid date'),
-  body('cellNumber').matches(/^\+1-\d{3}-\d{3}-\d{4}$/).withMessage('Please provide a valid phone number format: +1-XXX-XXX-XXXX'),
-  body('businessName').notEmpty().withMessage('Business name is required'),
-  body('businessPhone').matches(/^\+1-\d{3}-\d{3}-\d{4}$/).withMessage('Please provide a valid phone number format: +1-XXX-XXX-XXXX'),
-  body('businessEmail').isEmail().withMessage('Please provide a valid business email'),
-  body('bankingInfo').isObject().withMessage('Banking information is required'),
-  body('taxInfo').isObject().withMessage('Tax information is required'),
+  body('phone').notEmpty().withMessage('Phone number is required'),
+  body('identificationType').isIn(['licence', 'pr_card', 'passport', 'medical_card', 'provincial_id'])
+    .withMessage('Invalid identification type'),
+  body('restaurantName').notEmpty().withMessage('Restaurant name is required'),
+  body('businessAddress').notEmpty().withMessage('Business address is required'),
+  body('city').notEmpty().withMessage('City is required'),
+  body('province').isIn(['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'])
+    .withMessage('Invalid province'),
+  body('postalCode').matches(/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/)
+    .withMessage('Invalid postal code format'),
+  body('bankingInfo').isString().withMessage('Banking info must be a JSON string'),
+  body('taxInfo').isString().withMessage('Tax info must be a JSON string'),
   body('menuDetails').isString().withMessage('Menu details must be a JSON string'),
-  body('hoursOfOperation').isString().withMessage('Hours of operation must be a JSON string')
+  body('hoursOfOperation').isString().withMessage('Hours of operation must be a JSON string'),
+  body('stripePaymentIntentId').notEmpty().withMessage('Stripe Payment Intent ID is required')
 ];
 
 // Email verification routes

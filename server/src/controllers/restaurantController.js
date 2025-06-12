@@ -11,6 +11,16 @@ class RestaurantController extends BaseController {
   constructor() {
     super();
     this.stripe = stripe;
+    this.registerRestaurant = this.registerRestaurant.bind(this);
+    this.getProfile = this.getProfile.bind(this);
+    this.updateProfile = this.updateProfile.bind(this);
+    this.updateRestaurantStatus = this.updateRestaurantStatus.bind(this);
+    this.sendVerificationCode = this.sendVerificationCode.bind(this);
+    this.verifyOTP = this.verifyOTP.bind(this);
+    this.updateMenuItems = this.updateMenuItems.bind(this);
+    this.updateHours = this.updateHours.bind(this);
+    this.updateTaxInfo = this.updateTaxInfo.bind(this);
+    this.createPaymentIntent = this.createPaymentIntent.bind(this);
   }
 
   // @desc    Send verification email
