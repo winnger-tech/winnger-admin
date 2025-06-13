@@ -143,7 +143,7 @@ const PaymentForm = ({ driverId, onSuccess, onError }) => {
     try {
       console.log('Creating payment intent for driver:', driverId);
       
-      const response = await fetch('/api/drivers/create-payment-intent', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/drivers/create-payment-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

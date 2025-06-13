@@ -19,6 +19,7 @@ router.post('/confirm-payment', driverController.confirmPayment);
 router.post('/background-check-webhook', driverController.handleBackgroundCheckWebhook);
 
 router.post('/create-payment-intent', async (req, res) => {
+  console.log("Received body:", req.body);
   try {
     const { driverId } = req.body;
     const driver = await Driver.findByPk(driverId);
