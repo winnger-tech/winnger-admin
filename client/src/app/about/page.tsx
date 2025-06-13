@@ -3,18 +3,19 @@ import styled from 'styled-components';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useTranslation } from '../../utils/i18n';
 
 export default function About() {
+  const { t } = useTranslation();
   return (
     <Section id='about'>
       <ContentWrapper>
         <InlineHeadingWrapper>
-          <Heading>About Us</Heading>
+          <Heading>{t('about.title')}</Heading>
           <SubHeading>
-            We’re on a mission to simplify local deliveries. Our platform connects passionate
-            <Highlight> drivers </Highlight> and <Highlight> thriving restaurants </Highlight> to create a seamless delivery experience for everyone.
+            {t('about.description')}
             <br />
-            Whether you’re looking to earn more or grow your business, we’re here to support you at every mile.
+            {t('about.missionText')}
           </SubHeading>
         </InlineHeadingWrapper>
 
@@ -26,20 +27,20 @@ export default function About() {
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
             <CardText>
-              <CardTitle>For Drivers</CardTitle>
+              <CardTitle>{t('howItWorks.forDrivers.title')}</CardTitle>
               <CardList>
                 <li>
-                  <strong>➜ Earn on Your Terms</strong> – Flexible work hours and fast payouts.
+                  <strong>➜ {t('about.driver.earn')}</strong>
                 </li>
                 <li>
-                  <strong>➜ One-Time Setup</strong> – Just a small fee and you're ready to go.
+                  <strong>➜ {t('about.driver.setup')}</strong>
                 </li>
                 <li>
-                  <strong>➜ Partner Support</strong> – We've got your back every step of the way.
+                  <strong>➜ {t('about.driver.support')}</strong>
                 </li>
               </CardList>
               <Link href="/driver-registration" passHref>
-                <Button>Register as Driver</Button>
+                <Button>{t('home.hero.driverRegister')}</Button>
               </Link>
             </CardText>
             <CardImage>
@@ -60,20 +61,20 @@ export default function About() {
             transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
           >
             <CardText>
-              <CardTitle>For Restaurants</CardTitle>
+              <CardTitle>{t('howItWorks.forRestaurants.title')}</CardTitle>
               <CardList>
                 <li>
-                  <strong>➜ Expand Your Reach</strong> – Deliver to more customers in your area.
+                  <strong>➜ {t('about.restaurant.expand')}</strong>
                 </li>
                 <li>
-                  <strong>➜ Quick Onboarding</strong> – Easy form and document upload.
+                  <strong>➜ {t('about.restaurant.onboarding')}</strong>
                 </li>
                 <li>
-                  <strong>➜ Grow with Us</strong> – Benefit from our marketing & logistics network.
+                  <strong>➜ {t('about.restaurant.grow')}</strong>
                 </li>
               </CardList>
               <Link href="/restaurant-registration" passHref>
-                <Button>Register as Restaurant</Button>
+                <Button>{t('home.hero.restaurantRegister')}</Button>
               </Link>
             </CardText>
             <CardImage>
@@ -95,15 +96,21 @@ export default function About() {
 // Styled Components Below
 
 const Section = styled.section`
-  padding: 6rem 4rem;
-  font-family: 'Space Grotesk', sans-serif;
+padding: 40px 24px;
+  margin: 0 80px;
 
   @media (max-width: 1024px) {
-    padding: 4rem 2rem;
+    margin: 0 40px;
+  }
+
+  @media (max-width: 768px) {
+    margin: 0 24px;
+    padding: 32px 16px;
   }
 
   @media (max-width: 480px) {
-    padding: 3rem 1rem;
+    margin: 0 16px;
+    padding: 24px 12px;
   }
 `;
 
@@ -173,7 +180,7 @@ const MotionCard = motion(styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #949280;
+  background-color: #6E6B52;
   border-radius: 2rem;
   padding: 2.5rem;
   gap: 2rem;

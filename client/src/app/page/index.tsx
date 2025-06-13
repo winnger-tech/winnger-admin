@@ -3,8 +3,11 @@ import styled from "styled-components";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslation } from '../../utils/i18n';
 
 export default function Hero() {
+  const { t } = useTranslation();
+
   return (
     <HeroWrapper>
       <ContentWrapper>
@@ -15,7 +18,7 @@ export default function Hero() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            Join Us in
+            {t('home.hero.title1')}
           </MotionTitle>
 
           <MotionTitle
@@ -24,7 +27,7 @@ export default function Hero() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6, ease: "easeOut", delay: 0.15 }}
           >
-            Revolutionizing Local Deliveries!
+            {t('home.hero.title2')}
           </MotionTitle>
 
           <MotionDescription
@@ -33,23 +36,26 @@ export default function Hero() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
           >
-            Be part of our growing network. Whether you're a driver or a restaurant,
-            we're excited to have you onboard.
+            {t('home.hero.description')}
           </MotionDescription>
 
-         <ButtonGroup>
-  <Link href="/driver-registration" passHref>
-    <ButtonLink whileHover={{ scale: 1.05 }}>
-      Register as Driver
-    </ButtonLink>
-  </Link>
+          <ButtonGroup>
+            <Link href="/driver-registration" passHref>
+              <ButtonLink>
+                <PrimaryButton whileHover={{ scale: 1.05 }}>
+                  {t('home.hero.driverRegister')}
+                </PrimaryButton>
+              </ButtonLink>
+            </Link>
 
-  <Link href="/restaurant-registration" passHref>
-    <ButtonLink whileHover={{ scale: 1.05 }}>
-      Register as Restaurant
-    </ButtonLink>
-  </Link>
-</ButtonGroup>
+            <Link href="/restaurant-registration" passHref>
+              <ButtonLink>
+                <PrimaryButton whileHover={{ scale: 1.05 }}>
+                  {t('home.hero.restaurantRegister')}
+                </PrimaryButton>
+              </ButtonLink>
+            </Link>
+          </ButtonGroup>
         </HeroLeft>
 
         <HeroRight>
@@ -60,7 +66,7 @@ export default function Hero() {
             viewport={{ once: true }}
           >
             <Image
-              src="/HeroImg.png"
+              src="/HomeImg.png"
               alt="Hero Illustration"
               width={500}
               height={300}
@@ -187,10 +193,7 @@ const ButtonGroup = styled.div`
   }
 `;
 
-const ButtonLink = styled(motion.button)`
-  display: inline-block;
-  text-decoration: none;
-  width: 100%;
+export const PrimaryButton = styled(motion.button)`
   padding: 0.9rem 1.5rem;
   font-size: 1rem;
   border: none;
@@ -201,10 +204,6 @@ const ButtonLink = styled(motion.button)`
   transition: all 0.2s ease-in-out;
   min-width: 160px;
   text-align: center;
-
-  @media (min-width: 481px) {
-    width: auto;
-  }
 
   @media (max-width: 768px) {
     min-width: 140px;
@@ -217,6 +216,16 @@ const ButtonLink = styled(motion.button)`
     min-width: auto;
     padding: 1.1rem 0;
     font-size: 0.95rem;
+  }
+`;
+
+const ButtonLink = styled.a`
+  display: inline-block;
+  text-decoration: none;
+  width: 100%;
+
+  @media (min-width: 481px) {
+    width: auto;
   }
 `;
 

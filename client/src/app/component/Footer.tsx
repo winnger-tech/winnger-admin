@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { FaLinkedinIn, FaFacebookF, FaTwitter } from 'react-icons/fa';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useTranslation } from '../../utils/i18n';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -12,20 +13,22 @@ const fadeUp = {
 };
 
 export default function Footer() {
+  const { t } = useTranslation();
+
   return (
     <FooterContainer as={motion.footer} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
       <TopRow as={motion.div} variants={fadeUp}>
         <Logo>
-            <Link href="/">
-          <img src="/logo.png" alt="Logo" />
+          <Link href="/">
+            <img src="/logo.png" alt="Logo" />
           </Link>
         </Logo>
 
         <NavLinks>
-          <Link href="#about">About us</Link>
-          <Link href="#how-it-works">How it Works</Link>
-          <Link href="#faqs">FAQs</Link>
-          <Link href="#contact">Contact Us</Link>
+          <Link href="#about">{t('navigation.about')}</Link>
+          <Link href="#how-it-works">{t('navigation.howItWorks')}</Link>
+          <Link href="#faqs">{t('navigation.faq')}</Link>
+          <Link href="#contact">{t('navigation.contact')}</Link>
         </NavLinks>
 
         <SocialIcons>
@@ -37,23 +40,23 @@ export default function Footer() {
 
       <InfoRow as={motion.div} variants={fadeUp}>
         <ContactDetails>
-          <p>Email: info@winnger.com</p>
-          <p>Phone: 555-567-8901</p>
+          <p>{t('footer.email')}: info@winnger.com</p>
+          <p>{t('footer.phone')}: 555-567-8901</p>
           <p>
-            Address: 1234 Main St<br />
+            {t('footer.address')}: 1234 Main St<br />
             Moonstone City, Stardust State 12345
           </p>
         </ContactDetails>
 
         <SubscribeBox>
-          <input type="email" placeholder="Email" />
-          <button>Subscribe to news</button>
+          <input type="email" placeholder={t('footer.emailPlaceholder')} />
+          <button>{t('footer.subscribe')}</button>
         </SubscribeBox>
       </InfoRow>
 
       <BottomRow as={motion.div} variants={fadeUp}>
-        <span>© 2025 Winnger. All Rights Reserved.</span>
-        <Link href="#">Privacy Policy</Link>
+        <span>{t('footer.copyright')}</span>
+        <Link href="#">{t('footer.privacyPolicy')}</Link>
       </BottomRow>
     </FooterContainer>
   );

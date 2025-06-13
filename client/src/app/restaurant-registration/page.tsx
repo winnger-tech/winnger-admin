@@ -697,22 +697,22 @@ export default function RestaurantRegistrationPage() {
 // ========================================================================
 // STYLED COMPONENTS (All necessary styles are defined below)
 // ========================================================================
-
 const FormContainer = styled.section`
   max-width: 800px;
   margin: 2rem auto;
+  margin-top: 5rem;
   padding: 2.5rem;
-  background-color: #ffffff;
+  background-color: #f4f2e9;
   border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  color: #333;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  color: #2c2a1f;
 
   h2 {
     text-align: center;
     font-size: 1.8rem;
     font-weight: 600;
     margin-bottom: 1.5rem;
-    color: #2c3e50;
+    color: #3b3a2e;
   }
 `;
 
@@ -730,7 +730,7 @@ const ProgressBar = styled.div`
     left: 0;
     right: 0;
     height: 2px;
-    background-color: #e0e0e0;
+    background-color: #cfcab0;
     transform: translateY(-50%);
     z-index: 1;
   }
@@ -740,8 +740,8 @@ const ProgressStep = styled.div<{ $active: boolean }>`
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: ${({ $active }) => ($active ? "#3498db" : "#e0e0e0")};
-  color: ${({ $active }) => ($active ? "#ffffff" : "#999999")};
+  background-color: ${({ $active }) => ($active ? "#d9a73e" : "#e0dccc")};
+  color: ${({ $active }) => ($active ? "#ffffff" : "#888")};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -754,16 +754,16 @@ const ProgressStep = styled.div<{ $active: boolean }>`
 const SectionTitle = styled.h3`
   font-size: 1.5rem;
   font-weight: 600;
-  color: #2980b9;
+  color: #d9a73e;
   margin-bottom: 2rem;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid #e4b549;
   padding-left: 1rem;
 `;
 
 const SubSectionTitle = styled.h4`
   font-size: 1.2rem;
   font-weight: 600;
-  color: #34495e;
+  color: #3d3b30;
   margin-top: 2rem;
   margin-bottom: 1.5rem;
 `;
@@ -777,38 +777,39 @@ const FormGroup = styled.div`
     margin-bottom: 0.5rem;
     font-weight: 500;
     font-size: 0.95rem;
-    color: #555;
+    color: #5c5945;
   }
 
   input, select, textarea {
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 1px solid #bdc3c7;
+    border: 1px solid #d2cdb6;
     border-radius: 6px;
     font-size: 1rem;
+    background-color: #fdfcf7;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     &:focus {
       outline: none;
-      border-color: #3498db;
-      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+      border-color: #d9a73e;
+      box-shadow: 0 0 0 3px rgba(217, 167, 62, 0.2);
     }
   }
-  
+
   textarea {
-      min-height: 100px;
-      resize: vertical;
+    min-height: 100px;
+    resize: vertical;
   }
 `;
 
 const FormRow = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
 `;
 
 const ErrorText = styled.p`
-  color: #e74c3c;
+  color: #c0392b;
   font-size: 0.85rem;
   margin-top: 0.25rem;
 `;
@@ -821,13 +822,14 @@ const UploadWrapper = styled.div<{ small?: boolean }>`
   align-items: center;
   gap: 0.75rem;
   padding: ${({ small }) => small ? '0.6rem 1rem' : '1.5rem'};
-  border: 2px dashed #bdc3c7;
+  border: 2px dashed #c8c2a4;
   border-radius: 8px;
+  background-color: #fdfcf7;
   cursor: pointer;
   transition: border-color 0.3s ease;
-  
+
   &:hover {
-    border-color: #3498db;
+    border-color: #d9a73e;
   }
 
   span {
@@ -849,32 +851,32 @@ const UploadWrapper = styled.div<{ small?: boolean }>`
 `;
 
 const TaxInfo = styled.div`
-    padding: 1rem;
-    background-color: #ecf0f1;
-    border-radius: 6px;
-    margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #fbf9f0;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
 
-    ul {
-        display: flex;
-        gap: 1rem;
-        list-style: none;
-        padding: 0;
-        margin-top: 0.5rem;
-    }
+  ul {
+    display: flex;
+    gap: 1rem;
+    list-style: none;
+    padding: 0;
+    margin-top: 0.5rem;
+  }
 
-    li {
-        background-color: #3498db;
-        color: white;
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-weight: 500;
-        font-size: 0.9rem;
-    }
+  li {
+    background-color: #d9a73e;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-weight: 500;
+    font-size: 0.9rem;
+  }
 `;
 
 const MenuItemCard = styled.div`
-  background: #f9f9f9;
-  border: 1px solid #ecf0f1;
+  background: #fcfbf5;
+  border: 1px solid #e0dccc;
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -885,11 +887,11 @@ const MenuItemHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  
+
   h4 {
     margin: 0;
     font-size: 1.1rem;
-    color: #2c3e50;
+    color: #3b3a2e;
   }
 `;
 
@@ -928,38 +930,39 @@ const AddButton = styled.button`
 `;
 
 const OperatingHoursRow = styled.div`
-    display: grid;
-    grid-template-columns: 100px 1fr auto 1fr 100px;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    
-    span {
-        text-align: center;
-    }
+  display: grid;
+  grid-template-columns: 100px 1fr auto 1fr 100px;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  span {
+    text-align: center;
+  }
 `;
 
 const DayLabel = styled.p`
-    font-weight: 500;
+  font-weight: 500;
 `;
 
 const CheckboxWrapper = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    justify-content: center;
-    label {
-        margin: 0;
-    }
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+
+  label {
+    margin: 0;
+  }
 `;
 
 const ButtonContainer = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 3rem;
-    border-top: 1px solid #ecf0f1;
-    padding-top: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 3rem;
+  border-top: 1px solid #ecf0f1;
+  padding-top: 2rem;
 `;
 
 const ActionButton = styled.button<{ secondary?: boolean }>`
@@ -970,12 +973,11 @@ const ActionButton = styled.button<{ secondary?: boolean }>`
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.2s ease;
-  
-  background-color: ${({ secondary }) => (secondary ? '#7f8c8d' : '#3498db')};
+  background-color: ${({ secondary }) => (secondary ? '#7f8c8d' : '#d9a73e')};
   color: white;
 
   &:hover {
-    background-color: ${({ secondary }) => (secondary ? '#95a5a6' : '#2980b9')};
+    background-color: ${({ secondary }) => (secondary ? '#95a5a6' : '#c69535')};
     transform: translateY(-2px);
   }
 
@@ -985,22 +987,21 @@ const ActionButton = styled.button<{ secondary?: boolean }>`
   }
 `;
 
-// Styles for Payment Form
 const PaymentContainer = styled.div`
-    text-align: center;
-    padding: 2rem;
+  text-align: center;
+  padding: 2rem;
 `;
 
 const CardElementContainer = styled.div`
-    padding: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    margin: 2rem 0;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin: 2rem 0;
 `;
 
 const PayButton = styled(ActionButton)`
-    width: 100%;
-    margin-top: 1rem;
+  width: 100%;
+  margin-top: 1rem;
 `;
 
 const ErrorMessage = styled.p`

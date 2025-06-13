@@ -4,8 +4,10 @@ import styled from 'styled-components';
 import { motion, useAnimation } from 'framer-motion';
 import { useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
+import { useTranslation } from '../../utils/i18n';
 
 const ContactSection = () => {
+  const { t } = useTranslation();
   const controls = useAnimation();
   const [ref, inView] = useInView({
     triggerOnce: true,
@@ -26,28 +28,27 @@ const ContactSection = () => {
       variants={containerVariants}
     >
       <InlineHeadingWrapper>
-        <Heading>Contact Us</Heading>
+        <Heading>{t('contact.title')}</Heading>
         <SubHeading>
-          Have Questions? Get in Touch!
-          We're here to help. Fill out the form below and we'll get back to you shortly.
+          {t('contact.description')}
         </SubHeading>
       </InlineHeadingWrapper>
       <Decoration />
       <ContactBox>
         <Form>
           <InputWrapper>
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" type="text" placeholder="Name" />
+            <Label htmlFor="name">{t('contact.name')}</Label>
+            <Input id="name" type="text" placeholder={t('contact.namePlaceholder')} />
           </InputWrapper>
           <InputWrapper>
-            <Label htmlFor="email">Email*</Label>
-            <Input id="email" type="email" placeholder="Email" required />
+            <Label htmlFor="email">{t('contact.email')}</Label>
+            <Input id="email" type="email" placeholder={t('contact.emailPlaceholder')} required />
           </InputWrapper>
           <InputWrapper>
-            <Label htmlFor="message">Message*</Label>
-            <TextArea id="message" placeholder="Message" required />
+            <Label htmlFor="message">{t('contact.message')}</Label>
+            <TextArea id="message" placeholder={t('contact.messagePlaceholder')} required />
           </InputWrapper>
-          <Button type="submit">Send Message</Button>
+          <Button type="submit">{t('contact.sendMessage')}</Button>
         </Form>
       </ContactBox>
     </Container>
@@ -135,7 +136,7 @@ const SubHeading = styled.p`
 `;
 
 const ContactBox = styled.div`
-  background-color: #949280;
+  background-color: #6E6B52;
   padding: 48px 32px 48px 80px;
   border-radius: 32px;
   display: flex;
@@ -182,7 +183,7 @@ const Label = styled.label`
 `;
 
 const Input = styled.input`
-  background-color: #706c51;
+  background-color: #403E2D;
   border: 1px solid white;
   padding: 12px 16px;
   border-radius: 12px;
@@ -195,7 +196,7 @@ const Input = styled.input`
 `;
 
 const TextArea = styled.textarea`
-  background-color: #6c6a4b;
+  background-color: #403E2D;
   border: 1px solid white;
   padding: 12px 16px;
   border-radius: 12px;

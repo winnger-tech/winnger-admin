@@ -4,6 +4,7 @@ import DriverRegistration from '@/components/driver/DriverRegistration';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import styled from 'styled-components';
+import Navbar from '../component/Navbar';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -14,6 +15,8 @@ export default function DriverRegistrationPage() {
   };
 
   return (
+    <>
+      <Navbar />
     <PageContainer>
       <ContentWrapper>
         <PageTitle>Driver Registration</PageTitle>
@@ -28,6 +31,7 @@ export default function DriverRegistrationPage() {
         </Elements>
       </ContentWrapper>
     </PageContainer>
+    </>
   );
 }
 

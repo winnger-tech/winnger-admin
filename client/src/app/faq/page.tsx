@@ -4,36 +4,10 @@ import styled from 'styled-components';
 import { Plus, Minus } from 'lucide-react';
 import React, { useState, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
-
-const faqs = [
-  {
-    question: "Who can register on this platform?",
-    answer:
-      "Our platform is designed for both delivery drivers looking to earn flexibly and restaurants aiming to expand their delivery reach.",
-  },
-  {
-    question: "What documents do I need to upload while registering?",
-    answer: "Drivers typically need to provide a valid ID, driving license, and vehicle details. Restaurants may need a business license and menu information.",
-  },
-  {
-    question: "Is there any registration fee?",
-    answer: "Yes, there's a one-time setup fee to help us verify your details and onboard you securely. No hidden charges after that!",
-  },
-  {
-    question: "How long does the approval process take?",
-    answer: "Once your form and payment are submitted, our admin team will review and approve your registration within 24–48 hours.",
-  },
-  {
-    question: "I own multiple restaurants. Can I register them all?",
-    answer: "Absolutely! You can register each outlet individually or contact our support team for bulk onboarding options.",
-  },
-  {
-    question: "What kind of support do you provide after onboarding?",
-    answer: "We offer partner support, including marketing help, logistics integration, and ongoing assistance via phone and email.",
-  },
-];
+import { useTranslation } from '../../utils/i18n';
 
 const FaqSection = () => {
+  const { t } = useTranslation();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true });
@@ -41,6 +15,33 @@ const FaqSection = () => {
   const toggle = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
+
+  const faqs = [
+    {
+      question: t('faq.question1'),
+      answer: t('faq.answer1'),
+    },
+    {
+      question: t('faq.question2'),
+      answer: t('faq.answer2'),
+    },
+    {
+      question: t('faq.question3'),
+      answer: t('faq.answer3'),
+    },
+    {
+      question: t('faq.question4'),
+      answer: t('faq.answer4'),
+    },
+    {
+      question: t('faq.question5'),
+      answer: t('faq.answer5'),
+    },
+    {
+      question: t('faq.question6'),
+      answer: t('faq.answer6'),
+    },
+  ];
 
   return (
     <FaqContainer id='faqs'
@@ -50,7 +51,7 @@ const FaqSection = () => {
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
-      <Title>Frequently Asked Questions</Title>
+      <Title>{t('faq.title')}</Title>
       {faqs.map((faq, index) => {
         const isOpen = openIndex === index;
         return (
@@ -113,7 +114,7 @@ const Title = styled.h2`
 const AccordionItem = styled.div.withConfig({
   shouldForwardProp: (prop) => prop !== 'active',
 })<{ active: boolean }>`
-  background-color: #949280;
+  background-color: #6E6B52;
   color: white;
   padding: 24px;
   border-radius: 20px;

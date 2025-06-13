@@ -724,30 +724,33 @@ const DriverRegistration = ({ onSubmit }) => {
       {/*<h2 style={mainTitleStyle}>Driver Registration</h2>*/}
       
       {/* Progress Bar */}
-      <div style={progressBarStyle}>
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: 0,
-          right: 0,
-          height: '2px',
-          backgroundColor: '#e0e0e0',
-          transform: 'translateY(-50%)',
-          zIndex: 1,
-        }}></div>
-        {[1, 2, 3, 4].map((num) => (
-          <div 
-            key={num} 
-            style={{
-              ...progressStepStyle,
-              backgroundColor: currentStep >= num ? '#3498db' : '#e0e0e0',
-              color: currentStep >= num ? '#ffffff' : '#999999'
-            }}
-          >
-            {num}
-          </div>
-        ))}
-      </div>
+     <div style={progressBarStyle as React.CSSProperties}>
+  <div
+    style={{
+      position: 'absolute' as 'absolute',
+      top: '50%',
+      left: 0,
+      right: 0,
+      height: '2px',
+      backgroundColor: '#e0dccc',
+      transform: 'translateY(-50%)',
+      zIndex: 1,
+    }}
+  ></div>
+  {[1, 2, 3, 4].map((num) => (
+    <div
+      key={num}
+      style={{
+        ...progressStepStyle,
+        backgroundColor: currentStep >= num ? '#d9a73e' : '#e0dccc',
+        color: currentStep >= num ? '#ffffff' : '#888',
+      } as React.CSSProperties}
+    >
+      {num}
+    </div>
+  ))}
+</div>
+
 
       <form onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
         {/* Step 1: Personal Information */}
@@ -1151,12 +1154,12 @@ const DriverRegistration = ({ onSubmit }) => {
 // Styles
 const formContainerStyle = {
   maxWidth: '800px',
-  margin: '2rem auto',
+  margin: '2rem auto 2rem',
   padding: '2.5rem',
-  backgroundColor: '#ffffff',
+  backgroundColor: '#f4f2e9',
   borderRadius: '12px',
-  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-  color: '#333',
+  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.08)',
+  color: '#2c2a1f',
 };
 
 const mainTitleStyle = {
@@ -1164,7 +1167,7 @@ const mainTitleStyle = {
   fontSize: '1.8rem',
   fontWeight: '600',
   marginBottom: '1.5rem',
-  color: '#2c3e50',
+  color: '#3b3a2e',
 };
 
 const progressBarStyle = {
@@ -1173,17 +1176,6 @@ const progressBarStyle = {
   alignItems: 'center',
   marginBottom: '2.5rem',
   position: 'relative',
-  '::before': {
-    content: '""',
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    right: 0,
-    height: '2px',
-    backgroundColor: '#e0e0e0',
-    transform: 'translateY(-50%)',
-    zIndex: 1,
-  }
 };
 
 const progressStepStyle = {
@@ -1202,16 +1194,16 @@ const progressStepStyle = {
 const sectionTitleStyle = {
   fontSize: '1.5rem',
   fontWeight: '600',
-  color: '#2980b9',
+  color: '#d9a73e',
   marginBottom: '2rem',
-  borderLeft: '4px solid #3498db',
+  borderLeft: '4px solid #e4b549',
   paddingLeft: '1rem',
 };
 
 const subSectionTitleStyle = {
   fontSize: '1.2rem',
   fontWeight: '600',
-  color: '#34495e',
+  color: '#3d3b30',
   marginTop: '2rem',
   marginBottom: '1.5rem',
 };
@@ -1226,18 +1218,19 @@ const labelStyle = {
   marginBottom: '0.5rem',
   fontWeight: '500',
   fontSize: '0.95rem',
-  color: '#555',
+  color: '#5c5945',
 };
 
 const inputStyle = {
   width: '100%',
   padding: '0.75rem 1rem',
-  border: '1px solid #bdc3c7',
+  border: '1px solid #d2cdb6',
   borderRadius: '6px',
   fontSize: '1rem',
   transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
   outline: 'none',
   boxSizing: 'border-box',
+  backgroundColor: '#fdfcf7',
 };
 
 const formRowStyle = {
@@ -1259,11 +1252,11 @@ const uploadWrapperStyle = {
   alignItems: 'center',
   gap: '0.75rem',
   padding: '1.5rem',
-  border: '2px dashed #bdc3c7',
+  border: '2px dashed #c8c2a4',
   borderRadius: '8px',
   cursor: 'pointer',
   transition: 'border-color 0.3s ease',
-  backgroundColor: '#f8f9fa',
+  backgroundColor: '#fdfcf7',
   minHeight: '60px',
 };
 
@@ -1286,25 +1279,25 @@ const fileInputStyle = {
 
 const paymentInfoStyle = {
   padding: '1rem',
-  backgroundColor: '#e3f2fd',
+  backgroundColor: '#fcf7e7',
   borderRadius: '6px',
   margin: '1.5rem 0',
-  borderLeft: '4px solid #2196f3',
+  borderLeft: '4px solid #e4b549',
 };
 
 const paymentInfoTextStyle = {
   margin: '0.5rem 0',
-  color: '#1565c0',
+  color: '#b98f1f',
   fontWeight: '600',
 };
 
 const paymentInfoSubTextStyle = {
   margin: '0.5rem 0',
-  color: '#1565c0',
+  color: '#b98f1f',
 };
 
 const consentSectionStyle = {
-  backgroundColor: '#f8f9fa',
+  backgroundColor: '#fdfcf7',
   padding: '1.5rem',
   borderRadius: '8px',
   border: '1px solid #e9ecef',
@@ -1354,8 +1347,8 @@ const actionButtonStyle = {
   fontWeight: '600',
   cursor: 'pointer',
   transition: 'background-color 0.3s ease, transform 0.2s ease',
-  backgroundColor: '#3498db',
-  color: 'white',
+  backgroundColor: '#e4b549',
+  color: '#fff',
   minWidth: '140px',
 };
 
@@ -1381,7 +1374,7 @@ const paymentAmountStyle = {
 };
 
 const cardFormStyle = {
-  backgroundColor: '#f8f9fa',
+  backgroundColor: '#fdfcf7',
   padding: '1.5rem',
   borderRadius: '8px',
   border: '1px solid #e9ecef',
@@ -1400,6 +1393,7 @@ const payButtonStyle = {
   cursor: 'pointer',
   transition: 'background-color 0.3s ease',
   color: 'white',
+  backgroundColor: '#e4b549',
 };
 
 const errorMessageStyle = {
@@ -1412,27 +1406,6 @@ const errorMessageStyle = {
   borderRadius: '6px',
 };
 
-// export default function DriverRegistrationPage() {
-//   const handleSubmit = (data) => {
-//     console.log('Form submitted:', data);
-//     // Add any additional handling here
-//   };
-
-//   return (
-//     <div style={pageContainerStyle}>
-//       <div style={contentWrapperStyle}>
-//         <h1 style={pageTitleStyle}>Driver Registration</h1>
-//         <p style={pageDescriptionStyle}>
-//           Join our network of professional drivers and start earning on your own schedule.
-//           Fill out the form below to begin your registration process.
-//         </p>
-//         <DriverRegistration onSubmit={handleSubmit} />
-//       </div>
-//     </div>
-//   );
-// }
-
-// Add page-level styles
 const pageContainerStyle = {
   minHeight: '100vh',
   padding: '120px 20px 40px',
@@ -1458,7 +1431,7 @@ const pageDescriptionStyle = {
   marginBottom: '3rem',
   lineHeight: '1.6',
 };
-// Style options for the CardElement
+
 const CARD_ELEMENT_OPTIONS = {
   style: {
     base: {
@@ -1476,6 +1449,37 @@ const CARD_ELEMENT_OPTIONS = {
     }
   }
 };
+
+const cardElementStyle = {
+  padding: '12px',
+  border: '1px solid #ced4da',
+  borderRadius: '6px',
+  backgroundColor: 'white'
+};
+
+
+// export default function DriverRegistrationPage() {
+//   const handleSubmit = (data) => {
+//     console.log('Form submitted:', data);
+//     // Add any additional handling here
+//   };
+
+//   return (
+//     <div style={pageContainerStyle}>
+//       <div style={contentWrapperStyle}>
+//         <h1 style={pageTitleStyle}>Driver Registration</h1>
+//         <p style={pageDescriptionStyle}>
+//           Join our network of professional drivers and start earning on your own schedule.
+//           Fill out the form below to begin your registration process.
+//         </p>
+//         <DriverRegistration onSubmit={handleSubmit} />
+//       </div>
+//     </div>
+//   );
+// }
+
+// Add page-level styles
+
 
 // const formContainerStyle = { maxWidth: '800px', margin: '2rem auto', padding: '2.5rem', backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)', color: '#333' };
 // const progressBarStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', position: 'relative' };
@@ -1507,7 +1511,7 @@ const CARD_ELEMENT_OPTIONS = {
 // const cardFormStyle = { backgroundColor: '#f8f9fa', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e9ecef', margin: '1.5rem 0', textAlign: 'left' };
 // const payButtonStyle = { width: '100%', marginTop: '1rem', padding: '1rem 2rem', border: 'none', borderRadius: '6px', fontSize: '1.1rem', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.3s ease', color: 'white' };
 // const errorMessageStyle = { color: '#e74c3c', fontSize: '0.9rem', textAlign: 'center', marginTop: '1rem', padding: '0.75rem', backgroundColor: '#fadbd8', borderRadius: '6px' };
-const cardElementStyle = { padding: '12px', border: '1px solid #ced4da', borderRadius: '6px', backgroundColor: 'white' };
+
 
 //export default DriverRegistration;
 export default DriverRegistration;

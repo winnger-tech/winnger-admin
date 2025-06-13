@@ -4,6 +4,8 @@ import styled, { keyframes } from "styled-components";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslation } from '../../utils/i18n';
+import LanguageSelector from "./LanguageSelector";
 
 // Animations
 const fadeSlideDown = keyframes`
@@ -18,6 +20,7 @@ const dropdownReveal = keyframes`
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <Nav>
@@ -28,6 +31,11 @@ const Navbar = () => {
           </Link>
         </LogoWrapper>
 
+        {/* Language Selector visible only on mobile */}
+        <MobileLangSelector>
+          <LanguageSelector />
+        </MobileLangSelector>
+
         <Hamburger onClick={() => setMenuOpen(!menuOpen)} $menuOpen={menuOpen}>
           <span />
           <span />
@@ -36,15 +44,19 @@ const Navbar = () => {
 
         <RightSection $menuOpen={menuOpen}>
           <NavMenu>
-            <NavItem href="#about" onClick={() => setMenuOpen(false)}>About us</NavItem>
-            <NavItem href="#how-it-works" onClick={() => setMenuOpen(false)}>How It Works</NavItem>
-            <NavItem href="#faqs" onClick={() => setMenuOpen(false)}>FAQs</NavItem>
+            {/* Language Selector for desktop */}
+            <DesktopLangSelector>
+              <LanguageSelector />
+            </DesktopLangSelector>
+            <NavItem href="#about" onClick={() => setMenuOpen(false)}>{t('navigation.about')}</NavItem>
+            <NavItem href="#how-it-works" onClick={() => setMenuOpen(false)}>{t('navigation.howItWorks')}</NavItem>
+            <NavItem href="#faqs" onClick={() => setMenuOpen(false)}>{t('navigation.faq')}</NavItem>
             <ButtonGroup>
               <YellowButton href="/driver-registration" onClick={() => setMenuOpen(false)}>
-                Driver Register
+                {t('navigation.driverRegister')}
               </YellowButton>
               <YellowButton href="/restaurant-registration" onClick={() => setMenuOpen(false)}>
-                Restaurant Register
+                {t('navigation.restaurantRegister')}
               </YellowButton>
             </ButtonGroup>
           </NavMenu>
@@ -213,5 +225,28 @@ const YellowButton = styled(Link)`
   @media (max-width: 1024px) {
     width: 100%;
     padding: 16px 0;
+  }
+`;
+
+const MobileLangSelector = styled.div`
+  display: none;
+
+  @media (max-width: 1024px) {
+    display: block;
+    width: 150px;
+    position: absolute;
+    right: 70px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1000;
+  }
+`;
+
+const DesktopLangSelector = styled.div`
+  display: block;
+  min-width: 180px;
+
+  @media (max-width: 1024px) {
+    display: none;
   }
 `;

@@ -3,8 +3,10 @@
 import styled from 'styled-components';
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
+import { useTranslation } from '../../utils/i18n';
 
 export default function HowItWorks() {
+  const { t } = useTranslation();
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, margin: '0px 0px -100px 0px' });
 
@@ -14,43 +16,39 @@ export default function HowItWorks() {
         <MotionDiv $isInView={isInView}>
           {/* Heading Section */}
           <InlineHeadingWrapper>
-            <Heading>How It Works</Heading>
+            <Heading>{t('howItWorks.title')}</Heading>
             <SubHeading>
-              Get started in just 3 simple steps. Whether you’re a <Highlight>driver</Highlight> or a <Highlight>restaurant</Highlight>,
-              joining our platform is quick, secure, and hassle-free.
+              {t('howItWorks.description')}
             </SubHeading>
           </InlineHeadingWrapper>
 
           {/* Steps Section */}
           <StepsBox>
             <Step>
-              <strong>Step 1:</strong>
-              <strong>Fill Out a Simple Form</strong>
-              <p>Provide your details and necessary documents</p>
+              <strong>{t('howItWorks.step1.title')}</strong>
+              <p>{t('howItWorks.step1.description')}</p>
             </Step>
             <Step>
-              <strong>Step 2:</strong>
-              <strong>Pay the One-Time Setup Fee</strong>
-              <p>Secure payment gateway ensures your registration is verified</p>
+              <strong>{t('howItWorks.step2.title')}</strong>
+              <p>{t('howItWorks.step2.description')}</p>
             </Step>
             <Step>
-              <strong>Step 3:</strong>
-              <strong>Get Approved by Admin</strong>
-              <p>Once approved, you’ll receive an onboarding confirmation</p>
+              <strong>{t('howItWorks.step3.title')}</strong>
+              <p>{t('howItWorks.step3.description')}</p>
             </Step>
           </StepsBox>
 
           {/* CTA Section */}
           <CTAContainer>
             <InlineHeadingWrapper>
-              <Heading>Ready to Get Started?</Heading>
+              <Heading>{t('howItWorks.cta.title')}</Heading>
               <RightColumn>
                 <SubHeading>
-                  Join hundreds of drivers and restaurants pre-registering today.
+                  {t('howItWorks.cta.description')}
                 </SubHeading>
                 <CTAButtons>
-                  <Button href="/driver-registration">Register as Driver</Button>
-                  <Button href="/restaurant-registration">Register as Restaurant</Button>
+                  <Button href="/driver-registration">{t('home.hero.driverRegister')}</Button>
+                  <Button href="/restaurant-registration">{t('home.hero.restaurantRegister')}</Button>
                 </CTAButtons>
               </RightColumn>
             </InlineHeadingWrapper>
@@ -64,16 +62,21 @@ export default function HowItWorks() {
 // Styled Components
 
 const Section = styled.section`
-  font-family: 'Space Grotesk', sans-serif;
-  margin-bottom: -100px;
-
+ padding: 40px 24px;
+  margin: 0 80px;
 
   @media (max-width: 1024px) {
-    padding: 4rem 2rem;
+    margin: 0 40px;
+  }
+
+  @media (max-width: 768px) {
+    margin: 0 24px;
+    padding: 32px 16px;
   }
 
   @media (max-width: 480px) {
-    padding: 3rem 1rem;
+    margin: 0 16px;
+    padding: 24px 12px;
   }
 `;
 
