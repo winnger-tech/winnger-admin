@@ -259,6 +259,11 @@ module.exports = (sequelize) => {
       type: DataTypes.ENUM('pending', 'approved', 'rejected'),
       defaultValue: 'pending'
     },
+    remarks: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Internal admin notes or rejection reason'
+    },
     emailVerified: {
       type: DataTypes.BOOLEAN,
       defaultValue: false

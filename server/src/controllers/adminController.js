@@ -106,7 +106,9 @@ exports.updateRestaurantStatus = async (req, res) => {
     const restaurant = await Restaurant.findByPk(req.params.id);
     if (!restaurant) return res.status(404).json({ success: false, message: 'Restaurant not found' });
     restaurant.status = status;
-    if (remarks) restaurant.remarks = remarks;
+    if (remarks) {
+      restaurant.rejectionReason = remarks;
+    }
     await restaurant.save();
     await sendEmail({ email: restaurant.email, subject: `Status Update: ${status.toUpperCase()}`, message: `Your status is now: ${status.toUpperCase()}. ${remarks || ''}` });
     res.status(200).json({ success: true, data: restaurant });
