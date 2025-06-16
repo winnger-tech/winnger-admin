@@ -235,13 +235,14 @@ module.exports = (sequelize) => {
       allowNull: true
     },
     paymentStatus: {
-      type: DataTypes.ENUM('pending', 'completed', 'failed'),
-      defaultValue: 'pending'
+      type: DataTypes.ENUM('Pending', 'Paid', 'Failed'),
+      defaultValue: 'Pending',
+      allowNull: false
     },
-    paymentAmount: {
+    amount: {
       type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 50.00,
-      comment: 'Registration fee in USD'
+      defaultValue: 0.00,
+      allowNull: false
     },
     paymentDate: {
       type: DataTypes.DATE,
@@ -250,8 +251,9 @@ module.exports = (sequelize) => {
     
     // Status fields
     status: {
-      type: DataTypes.ENUM('pending', 'approved', 'rejected', 'suspended'),
-      defaultValue: 'pending'
+      type: DataTypes.ENUM('Submitted', 'Paid', 'Verified'),
+      defaultValue: 'Submitted',
+      allowNull: false
     },
     emailVerified: {
       type: DataTypes.BOOLEAN,

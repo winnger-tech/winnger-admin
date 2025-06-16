@@ -251,13 +251,20 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: true
     },
-    paymentStatus: {
-      type: DataTypes.ENUM('pending', 'completed', 'failed'),
-      defaultValue: 'pending'
+    amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+      allowNull: false
     },
     status: {
       type: DataTypes.ENUM('pending', 'approved', 'rejected'),
-      defaultValue: 'pending'
+      defaultValue: 'pending',
+      allowNull: false
+    },
+    paymentStatus: {
+      type: DataTypes.ENUM('pending', 'completed', 'failed'),
+      defaultValue: 'pending',
+      allowNull: false
     },
     remarks: {
       type: DataTypes.TEXT,

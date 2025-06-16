@@ -8,7 +8,10 @@ module.exports = (sequelize) => {
     }
 
     async comparePassword(candidatePassword) {
-      return await bcrypt.compare(candidatePassword, this.password);
+      console.log("Comparing", candidatePassword, "with", this.password);
+      const match = await bcrypt.compare(candidatePassword, this.password);
+      console.log("Password match?", match);
+      return match;
     }
   }
 

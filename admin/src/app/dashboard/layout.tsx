@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { LayoutDashboard, Users, Store, LogOut } from 'lucide-react'
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext'; 
+import { LayoutDashboard, Users, Store, LogOut } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -11,18 +12,22 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-
+  const { isAuthenticated, logout, user    } = useAuth();
   useEffect(() => {
     // Check if user is authenticated
     const isAuthenticated = localStorage.getItem('isAuthenticated')
     if (!isAuthenticated) {
       router.push('/login')
     }
-  }, [router])
+  }, [isAuthenticated,router])
 
   const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated')
-    router.push('/login')
+    // localStorage.removeItem('isAuthenticated')
+    // router.push('/login')
+    logout();
+  }
+  if (!isAuthenticated) {
+    return <div>Loading...</div>; // Or a proper loading spinner
   }
 
   return (

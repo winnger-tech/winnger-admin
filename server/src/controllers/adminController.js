@@ -1,7 +1,7 @@
 // updated_adminController.js
 const Driver = require('../models/Driver');
 const Restaurant = require('../models/Restaurant');
-const Admin = require('../models/Admin');
+const {Admin} = require('../models');
 const jwt = require('jsonwebtoken');
 const { sendEmail } = require('../utils/email');
 const { Op } = require('sequelize');
@@ -155,5 +155,85 @@ exports.exportData = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Update driver payment status
+exports.updateDriverPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action } = req.body;
+
+    const driver = await Driver.findByPk(id);
+    if (!driver) {
+      return res.status(404).json({ success: false, error: 'Driver not found' });
+    }
+
+    let paymentStatus;
+    switch (action) {
+      case 'approve':
+        paymentStatus = 'completed';
+        break;
+      case 'reject':
+        paymentStatus = 'failed';
+        break;
+      case 'retry':
+        paymentStatus = 'pending';
+        break;
+      default:
+        return res.status(400).json({ success: false, error: 'Invalid action' });
+    }
+
+    await driver.update({ paymentStatus });
+    await sendEmail({ 
+      email: driver.email, 
+      subject: `Payment Status Update: ${paymentStatus.toUpperCase()}`, 
+      message: `Your payment status has been updated to: ${paymentStatus.toUpperCase()}` 
+    });
+
+    res.json({ success: true, data: { id, paymentStatus } });
+  } catch (error) {
+    console.error('Error updating driver payment:', error);
+    res.status(500).json({ success: false, error: 'Failed to update payment status' });
+  }
+};
+
+// Update restaurant payment status
+exports.updateRestaurantPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action } = req.body;
+
+    const restaurant = await Restaurant.findByPk(id);
+    if (!restaurant) {
+      return res.status(404).json({ success: false, error: 'Restaurant not found' });
+    }
+
+    let paymentStatus;
+    switch (action) {
+      case 'approve':
+        paymentStatus = 'completed';
+        break;
+      case 'reject':
+        paymentStatus = 'failed';
+        break;
+      case 'retry':
+        paymentStatus = 'pending';
+        break;
+      default:
+        return res.status(400).json({ success: false, error: 'Invalid action' });
+    }
+
+    await restaurant.update({ paymentStatus });
+    await sendEmail({ 
+      email: restaurant.email, 
+      subject: `Payment Status Update: ${paymentStatus.toUpperCase()}`, 
+      message: `Your payment status has been updated to: ${paymentStatus.toUpperCase()}` 
+    });
+
+    res.json({ success: true, data: { id, paymentStatus } });
+  } catch (error) {
+    console.error('Error updating restaurant payment:', error);
+    res.status(500).json({ success: false, error: 'Failed to update payment status' });
   }
 };

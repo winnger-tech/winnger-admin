@@ -15,13 +15,32 @@ dotenv.config();
 
 const app = express();
 
+// Define allowed origins
+const allowedOrigins = [
+  'http://localhost:3000',  // Client app
+  'http://localhost:3001',  // Admin app
+  process.env.CLIENT_URL,   // Production client URL
+  process.env.ADMIN_URL     // Production admin URL
+].filter(Boolean); // Remove any undefined values
+
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS: ' + origin));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Body parsing middleware
@@ -32,6 +51,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/test', testRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/restaurants', restaurantRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
