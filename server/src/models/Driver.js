@@ -251,11 +251,12 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: true
     },
-    amount: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0.00,
-      allowNull: false
-    },
+    // amount: {
+    //   type: DataTypes.DECIMAL(10, 2),
+    //   defaultValue: 0.00,
+    //   allowNull: true
+
+    // },
     status: {
       type: DataTypes.ENUM('pending', 'approved', 'rejected'),
       defaultValue: 'pending',
@@ -266,11 +267,11 @@ module.exports = (sequelize) => {
       defaultValue: 'pending',
       allowNull: false
     },
-    remarks: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      comment: 'Internal admin notes or rejection reason'
-    },
+    // remarks: {
+    //   type: DataTypes.TEXT,
+    //   allowNull: true,
+    //   comment: 'Internal admin notes or rejection reason'
+    // },
     emailVerified: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
