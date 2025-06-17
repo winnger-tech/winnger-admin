@@ -152,7 +152,7 @@ function PaymentForm({
         setError(result.error.message || "Payment failed");
       } else {
         if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-            onSuccess(result.paymentIntent.id);
+          onSuccess(result.paymentIntent.id);
         }
       }
     } catch (err) {
@@ -405,15 +405,59 @@ export default function RestaurantRegistrationPage() {
     }
   };
 
+  const handleCheckout = async () => {
+    try {
+      const res = await fetch('/api/restaurants/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount: 5000 }), // $50.00 in cents
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to create checkout session');
+      }
+
+      const { id } = await res.json();
+      
+      if (!id) {
+        throw new Error('No session ID received');
+      }
+
+      const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+      if (!stripe) {
+        throw new Error('Failed to load Stripe');
+      }
+
+      const { error } = await stripe.redirectToCheckout({ sessionId: id });
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      setErrors({ submit: 'Payment initialization failed. Please try again.' });
+    }
+  };
+
   if (showPayment) {
     return (
       <>
         <Navbar />
         <FormContainer as={motion.div} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-          <Elements stripe={stripePromise}>
-            <PaymentForm onSuccess={handlePaymentSuccess} />
-          </Elements>
-           {errors.submit && <ErrorText style={{textAlign: 'center', marginTop: '20px'}}>{errors.submit}</ErrorText>}
+          <PaymentSection>
+            <SuccessMessage>
+              Registration form completed successfully!
+            </SuccessMessage>
+            <PaymentDescription>
+              Complete your registration with a one-time registration fee of $50.
+            </PaymentDescription>
+            <Button onClick={handleCheckout}>
+              Proceed to Payment ($50)
+            </Button>
+            {errors.submit && <ErrorText style={{textAlign: 'center', marginTop: '20px'}}>{errors.submit}</ErrorText>}
+          </PaymentSection>
         </FormContainer>
       </>
     );
@@ -1009,4 +1053,39 @@ const ErrorMessage = styled.p`
   font-size: 0.9rem;
   text-align: center;
   margin-top: 1rem;
+`;
+
+const PaymentSection = styled.div`
+  text-align: center;
+  margin-top: 2rem;
+  padding: 2rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+`;
+
+const SuccessMessage = styled.h3`
+  color: #4CAF50;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+`;
+
+const PaymentDescription = styled.p`
+  color: #2c2a1f;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+`;
+
+const Button = styled.button`
+  background-color: #d9a73e;
+  color: white;
+  padding: 14px 24px;
+  border: none;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  
+  &:hover {
+    background-color: #c69535;
+  }
 `;

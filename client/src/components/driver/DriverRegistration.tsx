@@ -1,9 +1,115 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, CSSProperties } from 'react';
 import { UploadCloud, Plus, Trash2 } from 'lucide-react';
-// Import Stripe hooks and the CardElement component
-import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+
+// Type definitions
+interface FormInputProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  type?: string;
+  placeholder?: string;
+  maxLength?: number;
+  required?: boolean;
+}
+
+interface FormSelectProps {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  error?: string;
+  required?: boolean;
+}
+
+interface FormFileUploadProps {
+  label: string;
+  onChange: (file: File) => void;
+  error?: string;
+  required?: boolean;
+  fileName?: string;
+}
+
+interface GoogleMapsPickerProps {
+  label: string;
+  onAddressSelect: (address: AddressData) => void;
+  error?: string;
+  required?: boolean;
+}
+
+interface AddressData {
+  streetNameNumber: string;
+  appUniteNumber?: string;
+  city: string;
+  province: string;
+  postalCode: string;
+}
+
+interface PaymentSectionProps {
+  driverData: any;
+  onSuccess: () => void;
+  onError: (error: { message: string }) => void;
+}
+
+interface DriverData {
+  email: string;
+  password: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  dateOfBirth: string;
+  cellNumber: string;
+  streetNameNumber: string;
+  appUniteNumber: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  vehicleType: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  yearOfManufacture: string;
+  vehicleColor: string;
+  vehicleLicensePlate: string;
+  driversLicenseClass: string;
+  drivingAbstractDate: string;
+  workEligibilityType: string;
+  sinNumber: string;
+  bankingInfo: {
+    transitNumber: string;
+    institutionNumber: string;
+    accountNumber: string;
+  };
+  consentAndDeclarations: {
+    termsAndConditions: boolean;
+    backgroundScreening: boolean;
+    privacyPolicy: boolean;
+    electronicCommunication: boolean;
+  };
+  files: {
+    profilePhoto: File | null;
+    driversLicenseFront: File | null;
+    driversLicenseBack: File | null;
+    vehicleRegistration: File | null;
+    vehicleInsurance: File | null;
+    drivingAbstract: File | null;
+    criminalBackgroundCheck: File | null;
+    workEligibility: File | null;
+    sinCard: File | null;
+  };
+}
+
+interface DriverRegistrationProps {
+  onSubmit: (data: DriverData) => void;
+}
+
+interface ValidationErrors {
+  [key: string]: string;
+}
+
+const stripePromise = loadStripe("pk_test_51RUev403dkXaIukYE6J4hDctlSuyJ6FMUJ4LLWL2CQ5h9Lo1wqunqmln2XkQtbnEo1Hs3jShSG0wE6qUQGN1UrTc009ewWKZfR");
 
 const provinceOptions = [
   { value: 'AB', label: 'Alberta' },
@@ -38,7 +144,7 @@ const workEligibilityOptions = [
 ];
 
 // Form Input Component
-const FormInput = ({ label, value, onChange, error, type = 'text', placeholder, maxLength, required = false }) => (
+const FormInput: React.FC<FormInputProps> = ({ label, value, onChange, error, type = 'text', placeholder, maxLength, required = false }) => (
   <div style={formGroupStyle}>
     <label style={labelStyle}>{label}</label>
     <input
@@ -57,7 +163,7 @@ const FormInput = ({ label, value, onChange, error, type = 'text', placeholder, 
 );
 
 // Form Select Component
-const FormSelect = ({ label, value, options, onChange, error, required = false }) => (
+const FormSelect: React.FC<FormSelectProps> = ({ label, value, options, onChange, error, required = false }) => (
   <div style={formGroupStyle}>
     <label style={labelStyle}>{label}</label>
     <select
@@ -79,7 +185,7 @@ const FormSelect = ({ label, value, options, onChange, error, required = false }
 );
 
 // Form File Upload Component
-const FormFileUpload = ({ label, onChange, error, required = false, fileName }) => (
+const FormFileUpload: React.FC<FormFileUploadProps> = ({ label, onChange, error, required = false, fileName }) => (
   <div style={formGroupStyle}>
     <label style={labelStyle}>{label}</label>
     <div style={uploadWrapperStyle}>
@@ -97,7 +203,7 @@ const FormFileUpload = ({ label, onChange, error, required = false, fileName }) 
 );
 
 // Google Maps Picker Placeholder
-const GoogleMapsPicker = ({ label, onAddressSelect, error, required }) => (
+const GoogleMapsPicker: React.FC<GoogleMapsPickerProps> = ({ label, onAddressSelect, error, required }) => (
   <div style={formGroupStyle}>
     <label style={labelStyle}>{label}</label>
     <input
@@ -119,257 +225,128 @@ const GoogleMapsPicker = ({ label, onAddressSelect, error, required }) => (
   </div>
 );
 
-// Payment Form Component
-const PaymentForm = ({ driverId, onSuccess, onError }) => {
-  // Get hooks from Stripe for payment processing
-  const stripe = useStripe();
-  const elements = useElements();
-  const [processing, setProcessing] = useState(false);
-  const [clientSecret, setClientSecret] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [cardholderName, setCardholderName] = useState('');
-  const [paymentError, setPaymentError] = useState(null);
+// Stripe Checkout Integration
+const PaymentSection: React.FC<PaymentSectionProps> = ({ driverData, onSuccess, onError }) => {
+  const [loading, setLoading] = useState(false);
 
-  // Create payment intent when component mounts
-  React.useEffect(() => {
-    if (driverId) {
-      createPaymentIntent();
-    }
-  }, [driverId]);
-
-  const createPaymentIntent = async () => {
+  const handleCheckout = async () => {
+    setLoading(true);
+    
     try {
-      console.log('Creating payment intent for driver:', driverId);
+      const stripe = await stripePromise;
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/drivers/create-payment-intent`, {
+      if (!stripe) {
+        throw new Error('Stripe not loaded');
+      }
+
+      console.log('Creating checkout session for driver:', driverData);
+
+      const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ driverId }),
+        body: JSON.stringify({
+          driverData: driverData,
+          testMode: false
+        }),
       });
 
-      console.log('Payment intent response status:', response.status);
-      const data = await response.json();
-      console.log('Payment intent response data:', data);
-
-      if (data.clientSecret) {
-        setClientSecret(data.clientSecret);
-      } else {
-        onError({ message: 'Failed to create payment intent' });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to create checkout session');
       }
+
+      const { id } = await res.json();
+      
+      if (!id) {
+        throw new Error('No session ID received');
+      }
+
+      console.log('Checkout session created:', id);
+      await stripe.redirectToCheckout({ sessionId: id });
+      
     } catch (error) {
-      console.error('Payment intent creation error:', error);
-      onError({ message: 'Failed to create payment intent. Please check if the backend server is running.' });
+      console.error('Checkout error:', error);
+      onError({ message: (error as Error).message || 'Payment initialization failed' });
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // Prevent submission if Stripe.js hasn't loaded or a payment intent wasn't created
-    if (!stripe || !elements || !clientSecret) {
-      onError({ message: 'Payment system is not ready. Please try again in a moment.' });
-      return;
-    }
-
-    setProcessing(true);
-    setPaymentError(null);
-
-    // Get a reference to the mounted CardElement
-    const cardElement = elements.getElement(CardElement);
-
-    // Use the clientSecret from the PaymentIntent and the CardElement to confirm the payment
-    const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-      payment_method: {
-        card: cardElement,
-        billing_details: {
-          name: cardholderName,
-        },
-      },
-    });
-
-    if (stripeError) {
-      // Show error to your customer (e.g., insufficient funds, incorrect card details)
-      console.error(stripeError);
-      setPaymentError(stripeError.message || 'An unexpected error occurred.');
-      setProcessing(false);
-      return;
-    }
-
-    // If the payment is successful, confirm it on the backend
-    if (paymentIntent.status === 'succeeded') {
-      console.log('Payment succeeded:', paymentIntent);
-      // This server-side call confirms the payment and triggers the background check
-      try {
-        const response = await fetch('/api/drivers/confirm-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ driverId, paymentIntentId: paymentIntent.id }),
-        });
-        const result = await response.json();
-        if (result.success) {
-            onSuccess(); // Payment and confirmation successful, redirect to success page
-        } else {
-            setPaymentError(result.message || 'Payment succeeded, but server confirmation failed.');
-        }
-      } catch (confirmError) {
-        setPaymentError('Payment was successful, but confirmation failed. Please contact support.');
-      }
-    } else {
-      setPaymentError(`Payment status: ${paymentIntent.status}. Please try again.`);
-    }
-
-    setProcessing(false);
   };
 
   return (
     <div style={paymentContainerStyle}>
       <h2 style={sectionTitleStyle}>Complete Your Registration</h2>
-      <p style={paymentDescStyle}>A one-time background check fee is required to activate your driver account.</p>
-      <h3 style={paymentAmountStyle}>Registration Fee: CAD $65.00</h3>
+      <p style={paymentDescStyle}>
+        Registration completed successfully! Complete your driver registration with a one-time background check fee.
+      </p>
+      <h3 style={paymentAmountStyle}>Registration Fee: CAD $25.00</h3>
       
-      <form onSubmit={handleSubmit}>
-        <div style={cardFormStyle}>
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>Cardholder Name</label>
-            <input
-              type="text"
-              value={cardholderName}
-              onChange={(e) => setCardholderName(e.target.value)}
-              placeholder="John Doe"
-              style={inputStyle}
-              required
-            />
-          </div>
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>Card Details</label>
-            {/* The CardElement replaces all individual card fields.
-              It is a single, secure iframe controlled by Stripe.
-            */}
-            <div style={cardElementStyle}>
-              <CardElement options={CARD_ELEMENT_OPTIONS} />
-            </div>
-          </div>
-          
-          {paymentError && (
-            <div style={paymentInfoStyle}>
-              <p style={{ ...paymentInfoTextStyle, color: '#e74c3c' }}>
-                Error: {paymentError}
-              </p>
-            </div>
-          )}
-        </div>
-          
-          {/*<div style={formGroupStyle}>
-            <label style={labelStyle}>Card Number</label>
-            <input
-              type="text"
-              value={cardNumber}
-              onChange={(e) => setCardNumber(e.target.value)}
-              placeholder="1234 5678 9012 3456"
-              maxLength={19}
-              style={inputStyle}
-              required
-            />
-          </div>
-          
-          <div style={formRowStyle}>
-            <div style={formGroupStyle}>
-              <label style={labelStyle}>Expiry Date</label>
-              <input
-                type="text"
-                value={expiryDate}
-                onChange={(e) => setExpiryDate(e.target.value)}
-                placeholder="MM/YY"
-                maxLength={5}
-                style={inputStyle}
-                required
-              />
-            </div>
-            
-            <div style={formGroupStyle}>
-              <label style={labelStyle}>CVV</label>
-              <input
-                type="text"
-                value={cvv}
-                onChange={(e) => setCvv(e.target.value)}
-                placeholder="123"
-                maxLength={4}
-                style={inputStyle}
-                required
-              />
-            </div>
-          </div>
-          
-          {clientSecret && (
-            <div style={{ ...paymentInfoStyle, backgroundColor: '#d4edda', borderLeft: '4px solid #28a745' }}>
-              <p style={{ ...paymentInfoTextStyle, color: '#155724' }}>
-                ✅ Payment ready to process
-              </p>
-            </div>
-          )}
-        </div>  */}
-        
-        <button 
-          type="submit" 
-          style={{
-            ...payButtonStyle,
-            backgroundColor: processing ? '#bdc3c7' : '#27ae60',
-            cursor: processing || !clientSecret || !stripe ? 'not-allowed' : 'pointer'
-          }}
-          disabled={processing || !clientSecret || !stripe}
-        >
-          {processing ? "Processing Payment..." : "Pay CAD $65 and Complete Registration"}
-        </button>
-      </form>
+      <div style={paymentSuccessStyle}>
+        <p style={paymentSuccessTextStyle}>
+          ✅ Registration form submitted successfully
+        </p>
+        <p style={paymentInfoSubTextStyle}>
+          Click below to proceed to secure payment and activate your driver account.
+        </p>
+      </div>
+      
+      <button 
+        onClick={handleCheckout}
+        disabled={loading}
+        style={{
+          ...payButtonStyle,
+          backgroundColor: loading ? '#bdc3c7' : '#e4b549',
+          cursor: loading ? 'not-allowed' : 'pointer'
+        }}
+      >
+        {loading ? "Redirecting to Payment..." : "Pay CAD $25 and Complete Registration"}
+      </button>
     </div>
   );
 };
 
 // Validation function
-const validateDriverForm = (data) => {
-  const errors = {};
+const validateDriverForm = (data: DriverData) => {
+  const errors: ValidationErrors = {};
   
   // Personal Info validation
-  if (!data.personalInfo.firstName?.trim()) errors.firstName = 'First name is required';
-  if (!data.personalInfo.lastName?.trim()) errors.lastName = 'Last name is required';
-  if (!data.personalInfo.email?.trim()) errors.email = 'Email is required';
-  if (!data.personalInfo.cellNumber?.trim()) errors.cellNumber = 'Cell number is required';
-  if (!data.personalInfo.dateOfBirth?.trim()) errors.dateOfBirth = 'Date of birth is required';
-  if (!data.personalInfo.streetNameNumber?.trim()) errors.streetNameNumber = 'Street address is required';
-  if (!data.personalInfo.city?.trim()) errors.city = 'City is required';
-  if (!data.personalInfo.province?.trim()) errors.province = 'Province is required';
-  if (!data.personalInfo.postalCode?.trim()) errors.postalCode = 'Postal code is required';
+  if (!data.firstName?.trim()) errors.firstName = 'First name is required';
+  if (!data.lastName?.trim()) errors.lastName = 'Last name is required';
+  if (!data.email?.trim()) errors.email = 'Email is required';
+  if (!data.cellNumber?.trim()) errors.cellNumber = 'Cell number is required';
+  if (!data.dateOfBirth?.trim()) errors.dateOfBirth = 'Date of birth is required';
+  if (!data.streetNameNumber?.trim()) errors.streetNameNumber = 'Street address is required';
+  if (!data.city?.trim()) errors.city = 'City is required';
+  if (!data.province?.trim()) errors.province = 'Province is required';
+  if (!data.postalCode?.trim()) errors.postalCode = 'Postal code is required';
   
   // Vehicle Info validation
-  if (!data.vehicleInfo.vehicleType?.trim()) errors.vehicleType = 'Vehicle type is required';
-  if (!data.vehicleInfo.vehicleMake?.trim()) errors.vehicleMake = 'Vehicle make is required';
-  if (!data.vehicleInfo.vehicleModel?.trim()) errors.vehicleModel = 'Vehicle model is required';
-  if (!data.vehicleInfo.yearOfManufacture?.trim()) errors.yearOfManufacture = 'Year is required';
-  if (!data.vehicleInfo.vehicleColor?.trim()) errors.vehicleColor = 'Vehicle color is required';
-  if (!data.vehicleInfo.vehicleLicensePlate?.trim()) errors.vehicleLicensePlate = 'License plate is required';
+  if (!data.vehicleType?.trim()) errors.vehicleType = 'Vehicle type is required';
+  if (!data.vehicleMake?.trim()) errors.vehicleMake = 'Vehicle make is required';
+  if (!data.vehicleModel?.trim()) errors.vehicleModel = 'Vehicle model is required';
+  if (!data.yearOfManufacture?.trim()) errors.yearOfManufacture = 'Year is required';
+  if (!data.vehicleColor?.trim()) errors.vehicleColor = 'Vehicle color is required';
+  if (!data.vehicleLicensePlate?.trim()) errors.vehicleLicensePlate = 'License plate is required';
   
   // Document Info validation
-  if (!data.documentInfo.driversLicenseClass?.trim()) errors.driversLicenseClass = 'License class is required';
-  if (!data.documentInfo.drivingAbstractDate?.trim()) errors.drivingAbstractDate = 'Driving abstract date is required';
-  if (!data.documentInfo.workEligibilityType?.trim()) errors.workEligibilityType = 'Work eligibility type is required';
-  if (!data.documentInfo.sinNumber?.trim()) errors.sinNumber = 'SIN number is required';
+  if (!data.driversLicenseClass?.trim()) errors.driversLicenseClass = 'License class is required';
+  if (!data.drivingAbstractDate?.trim()) errors.drivingAbstractDate = 'Driving abstract date is required';
+  if (!data.workEligibilityType?.trim()) errors.workEligibilityType = 'Work eligibility type is required';
+  if (!data.sinNumber?.trim()) errors.sinNumber = 'SIN number is required';
   
   // Banking validation
-  if (!data.paymentInfo.transitNumber?.trim()) errors.transitNumber = 'Transit number is required';
-  if (!data.paymentInfo.institutionNumber?.trim()) errors.institutionNumber = 'Institution number is required';
-  if (!data.paymentInfo.accountNumber?.trim()) errors.accountNumber = 'Account number is required';
+  if (!data.bankingInfo.transitNumber?.trim()) errors.transitNumber = 'Transit number is required';
+  if (!data.bankingInfo.institutionNumber?.trim()) errors.institutionNumber = 'Institution number is required';
+  if (!data.bankingInfo.accountNumber?.trim()) errors.accountNumber = 'Account number is required';
   
   return {
     isValid: Object.keys(errors).length === 0,
     errors
   };
 };
-const convertProvinceNameToCode = (name) => {
-  const map = {
+const convertProvinceNameToCode = (name: string): string => {
+  const map: Record<string, string> = {
     'Alberta': 'AB',
     'British Columbia': 'BC',
     'Manitoba': 'MB',
@@ -389,13 +366,13 @@ const convertProvinceNameToCode = (name) => {
 
 
 // Main Driver Registration Component
-const DriverRegistration = ({ onSubmit }) => {
+const DriverRegistration: React.FC<DriverRegistrationProps> = ({ onSubmit }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [showPayment, setShowPayment] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<ValidationErrors>({});
   const [driverId, setDriverId] = useState(null);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<DriverData>({
     // Personal Information
     email: '',
     password: '',
@@ -453,7 +430,7 @@ const DriverRegistration = ({ onSubmit }) => {
     }
   });
 
-  const handleChange = (field, value) => {
+  const handleChange = (field: keyof DriverData, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -461,7 +438,7 @@ const DriverRegistration = ({ onSubmit }) => {
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
-  const handleBankingChange = (field, value) => {
+  const handleBankingChange = (field: keyof DriverData['bankingInfo'], value: string) => {
     setFormData((prev) => ({
       ...prev,
       bankingInfo: {
@@ -472,7 +449,7 @@ const DriverRegistration = ({ onSubmit }) => {
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
-  const handleConsentChange = (field, value) => {
+  const handleConsentChange = (field: keyof DriverData['consentAndDeclarations'], value: boolean) => {
     setFormData((prev) => ({
       ...prev,
       consentAndDeclarations: {
@@ -482,7 +459,7 @@ const DriverRegistration = ({ onSubmit }) => {
     }));
   };
 
-  const handleFileChange = (field, file) => {
+  const handleFileChange = (field: keyof DriverData['files'], file: File) => {
     setFormData((prev) => ({
       ...prev,
       files: {
@@ -493,7 +470,7 @@ const DriverRegistration = ({ onSubmit }) => {
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
-  const handleAddressSelect = (address) => {
+  const handleAddressSelect = (address: AddressData) => {
     setFormData((prev) => ({
       ...prev,
       streetNameNumber: address.streetNameNumber,
@@ -504,8 +481,8 @@ const DriverRegistration = ({ onSubmit }) => {
     }));
   };
 
-  const validateStep = (step) => {
-    const newErrors = {};
+  const validateStep = (step: number) => {
+    const newErrors: ValidationErrors = {};
 
     switch (step) {
       case 1: // Personal Information
@@ -645,7 +622,7 @@ const DriverRegistration = ({ onSubmit }) => {
       // Add all form fields
       Object.keys(formData).forEach(key => {
         if (key !== 'files' && key !== 'bankingInfo' && key !== 'consentAndDeclarations') {
-          submitData.append(key, formData[key]);
+          submitData.append(key, formData[key as keyof DriverData] as string);
         }
       });
 
@@ -661,8 +638,9 @@ const DriverRegistration = ({ onSubmit }) => {
 
       // Add files with exact field names your backend expects
       Object.keys(formData.files).forEach(key => {
-        if (formData.files[key]) {
-          submitData.append(key, formData.files[key]);
+        const fileKey = key as keyof DriverData['files'];
+        if (formData.files[fileKey]) {
+          submitData.append(key, formData.files[fileKey] as File);
         }
       });
 
@@ -700,15 +678,15 @@ const DriverRegistration = ({ onSubmit }) => {
     window.location.href = '/driver-registration/success';
   };
 
-  const handlePaymentError = (error) => {
+  const handlePaymentError = (error: { message: string }) => {
     setErrors({ payment: error.message });
   };
 
   if (showPayment) {
     return (
       <div style={formContainerStyle}>
-        <PaymentForm 
-          driverId={driverId}
+        <PaymentSection 
+          driverData={formData}
           onSuccess={handlePaymentSuccess}
           onError={handlePaymentError}
         />
@@ -1106,8 +1084,8 @@ const DriverRegistration = ({ onSubmit }) => {
                 <label key={key} style={consentItemStyle}>
                   <input
                     type="checkbox"
-                    checked={formData.consentAndDeclarations[key]}
-                    onChange={(e) => handleConsentChange(key, e.target.checked)}
+                    checked={formData.consentAndDeclarations[key as keyof DriverData['consentAndDeclarations']]}
+                    onChange={(e) => handleConsentChange(key as keyof DriverData['consentAndDeclarations'], e.target.checked)}
                     style={checkboxStyle}
                   />
                   <span style={consentLabelStyle}>{label}</span>
@@ -1208,7 +1186,7 @@ const subSectionTitleStyle = {
   marginBottom: '1.5rem',
 };
 
-const formGroupStyle = {
+const formGroupStyle: CSSProperties = {
   marginBottom: '1.25rem',
   display: 'flex',
   flexDirection: 'column',
@@ -1221,7 +1199,7 @@ const labelStyle = {
   color: '#5c5945',
 };
 
-const inputStyle = {
+const inputStyle: CSSProperties = {
   width: '100%',
   padding: '0.75rem 1rem',
   border: '1px solid #d2cdb6',
@@ -1246,7 +1224,7 @@ const errorTextStyle = {
   marginTop: '0.25rem',
 };
 
-const uploadWrapperStyle = {
+const uploadWrapperStyle: CSSProperties = {
   position: 'relative',
   display: 'flex',
   alignItems: 'center',
@@ -1267,7 +1245,7 @@ const uploadTextStyle = {
   whiteSpace: 'nowrap',
 };
 
-const fileInputStyle = {
+const fileInputStyle: CSSProperties = {
   position: 'absolute',
   top: 0,
   left: 0,
@@ -1277,7 +1255,7 @@ const fileInputStyle = {
   cursor: 'pointer',
 };
 
-const paymentInfoStyle = {
+const paymentInfoStyle: CSSProperties = {
   padding: '1rem',
   backgroundColor: '#fcf7e7',
   borderRadius: '6px',
@@ -1285,15 +1263,29 @@ const paymentInfoStyle = {
   borderLeft: '4px solid #e4b549',
 };
 
-const paymentInfoTextStyle = {
+const paymentInfoTextStyle: CSSProperties = {
   margin: '0.5rem 0',
   color: '#b98f1f',
   fontWeight: '600',
 };
 
-const paymentInfoSubTextStyle = {
+const paymentInfoSubTextStyle: CSSProperties = {
   margin: '0.5rem 0',
   color: '#b98f1f',
+};
+
+const paymentSuccessStyle: CSSProperties = {
+  padding: '1rem',
+  backgroundColor: '#d4edda',
+  borderRadius: '6px',
+  margin: '1.5rem 0',
+  borderLeft: '4px solid #28a745',
+};
+
+const paymentSuccessTextStyle: CSSProperties = {
+  margin: '0.5rem 0',
+  color: '#155724',
+  fontWeight: '600',
 };
 
 const consentSectionStyle = {
@@ -1357,7 +1349,7 @@ const stepContentStyle = {
   animation: 'fadeIn 0.3s ease-in-out',
 };
 
-const paymentContainerStyle = {
+const paymentContainerStyle: CSSProperties = {
   textAlign: 'center',
   padding: '2rem',
 };
@@ -1396,7 +1388,7 @@ const payButtonStyle = {
   backgroundColor: '#e4b549',
 };
 
-const errorMessageStyle = {
+const errorMessageStyle: CSSProperties = {
   color: '#e74c3c',
   fontSize: '0.9rem',
   textAlign: 'center',
@@ -1432,30 +1424,7 @@ const pageDescriptionStyle = {
   lineHeight: '1.6',
 };
 
-const CARD_ELEMENT_OPTIONS = {
-  style: {
-    base: {
-      color: '#32325d',
-      fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-      fontSmoothing: 'antialiased',
-      fontSize: '16px',
-      '::placeholder': {
-        color: '#aab7c4'
-      }
-    },
-    invalid: {
-      color: '#fa755a',
-      iconColor: '#fa755a'
-    }
-  }
-};
 
-const cardElementStyle = {
-  padding: '12px',
-  border: '1px solid #ced4da',
-  borderRadius: '6px',
-  backgroundColor: 'white'
-};
 
 
 // export default function DriverRegistrationPage() {
