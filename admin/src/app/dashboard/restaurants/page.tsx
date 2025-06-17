@@ -31,7 +31,7 @@ export default function RestaurantsPage() {
         setLoading(true)
         setError('')
         const token = localStorage.getItem('auth_token')
-        const res = await axios.get('http://localhost:5001/api/admin/restaurants', {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:5001'}/api/admin/restaurants`, {
           headers: { Authorization: `Bearer ${token}` },
           params: {
             status: selectedStatus !== 'All' ? selectedStatus.toLowerCase() : undefined,
@@ -93,7 +93,7 @@ export default function RestaurantsPage() {
       setError('')
       const token = localStorage.getItem('auth_token')
       await axios.put(
-        `http://localhost:5001/api/admin/restaurants/${restaurantId}/payment`,
+        `${process.env.NEXT_PUBLIC_URL || 'http://localhost:5001'}/api/admin/restaurants/${restaurantId}/payment`,
         { action },
         { headers: { Authorization: `Bearer ${token}` } }
       )
