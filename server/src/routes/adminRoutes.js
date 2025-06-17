@@ -8,6 +8,8 @@ const {
   getAllRestaurants,
   updateDriverStatus,
   updateRestaurantStatus,
+  updateDriverPayment,
+  updateRestaurantPayment,
   exportData
 } = require('../controllers/adminController');
 
@@ -24,10 +26,12 @@ router.get('/dashboard', getDashboardStats);
 // Driver routes
 router.get('/drivers', getAllDrivers);
 router.put('/drivers/:id/status', updateDriverStatus);
+router.put('/drivers/:id/payment', updateDriverPayment);
 
 // Restaurant routes
 router.get('/restaurants', getAllRestaurants);
 router.put('/restaurants/:id/status', updateRestaurantStatus);
+router.put('/restaurants/:id/payment', updateRestaurantPayment);
 
 // Export routes
 router.get('/export', exportData);
