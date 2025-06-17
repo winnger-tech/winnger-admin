@@ -71,37 +71,28 @@ const PaymentTestComponent = () => {
   };
 
   const handleBackendPaymentIntent = async () => {
-    setLoading(true);
-    setError('');
-    
     try {
-      console.log('Testing backend payment intent creation...');
-      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/drivers/create-payment-intent`, {
+      setLoading(true);
+      setError('');
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/drivers/create-payment-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          driverId: '02e07f83-fb25-4874-9dcb-4b3fb6ac35c8',
-          amount: 2500, // $25.00 in cents
-          ...dummyDriverData 
-        }),
+        body: JSON.stringify(dummyDriverData),
       });
 
-      const data = await response.json();
-      console.log('Backend payment intent response:', data);
-      
-      if (data.clientSecret) {
-        console.log('✅ Backend payment intent created successfully');
-        setError('✅ Backend payment intent created successfully! Check console for details.');
-      } else {
-        throw new Error(data.error || 'Failed to create payment intent');
+      if (!response.ok) {
+        throw new Error('Failed to create payment intent');
       }
-      
-    } catch (error) {
-      console.error('Backend payment intent error:', error);
-      setError(`❌ Backend payment intent failed: ${error.message}`);
+
+      const data = await response.json();
+      setError('✅ Payment intent created successfully! Check console for details.');
+      console.log('Payment Intent:', data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create payment intent';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

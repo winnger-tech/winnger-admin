@@ -134,27 +134,69 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
     // Handle the event
     switch (event.type) {
-      case 'payment_intent.succeeded':
-        const paymentIntent = event.data.object;
-        const { registration_type, email } = paymentIntent.metadata;
+      case 'checkout.session.completed':
+        const session = event.data.object;
+        const { registration_type, email, restaurantId } = session.metadata;
 
         // Find the corresponding record
         const Model = registration_type === 'driver' ? Driver : Restaurant;
         const record = await Model.findOne({
-          where: { stripePaymentIntentId: paymentIntent.id }
+          where: registration_type === 'driver' 
+            ? { stripePaymentIntentId: session.payment_intent }
+            : { id: restaurantId }
         });
 
         if (record) {
-          await record.update({ paymentStatus: 'completed' });
+          await record.update({ 
+            paymentStatus: 'completed',
+            stripePaymentIntentId: session.payment_intent
+          });
           
           // Send payment receipt
           await sendPaymentReceipt({
             email,
             name: record.businessName || `${record.firstName} ${record.lastName}`,
-            amount: paymentIntent.amount / 100,
-            transactionId: paymentIntent.id,
+            amount: session.amount_total / 100,
+            transactionId: session.payment_intent,
             type: registration_type
           });
+        }
+        break;
+
+      case 'payment_intent.succeeded':
+        const paymentIntent = event.data.object;
+        const { registration_type: piType, email: piEmail } = paymentIntent.metadata;
+
+        // Find the corresponding record
+        const piModel = piType === 'driver' ? Driver : Restaurant;
+        const piRecord = await piModel.findOne({
+          where: { stripePaymentIntentId: paymentIntent.id }
+        });
+
+        if (piRecord) {
+          // Update payment status
+          await piRecord.update({ 
+            paymentStatus: 'completed',
+            stripePaymentIntentId: paymentIntent.id
+          });
+
+          // Verify the update was successful
+          const updatedRecord = await piModel.findOne({
+            where: { stripePaymentIntentId: paymentIntent.id }
+          });
+
+          if (updatedRecord && updatedRecord.paymentStatus === 'completed') {
+            // Send payment receipt
+            await sendPaymentReceipt({
+              email: piEmail,
+              name: piRecord.businessName || `${piRecord.firstName} ${piRecord.lastName}`,
+              amount: paymentIntent.amount / 100,
+              transactionId: paymentIntent.id,
+              type: piType
+            });
+          } else {
+            console.error('Failed to update payment status for', piType, paymentIntent.id);
+          }
         }
         break;
 

@@ -1,4 +1,4 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('stripe')("");
 
 const createPaymentIntent = async (amount, currency = 'usd') => {
   try {

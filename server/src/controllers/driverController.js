@@ -154,8 +154,17 @@ class DriverController extends BaseController {
         throw { status: 400, message: 'Payment mismatch' };
       }
   
-      // Update payment status
-      await driver.update({ paymentStatus: 'completed' });
+      // Update payment status and ensure it's saved
+      await driver.update({ 
+        paymentStatus: 'completed',
+        stripePaymentIntentId: paymentIntentId
+      });
+  
+      // Double check the update was successful
+      const updatedDriver = await Driver.findByPk(driverId);
+      if (updatedDriver.paymentStatus !== 'completed') {
+        throw { status: 500, message: 'Failed to update payment status' };
+      }
   
       // Initiate background check
       try {
@@ -196,11 +205,15 @@ class DriverController extends BaseController {
   
       return res.json({
         success: true,
-        message: 'Payment confirmed successfully'
+        message: 'Payment confirmed successfully',
+        paymentStatus: 'completed'
       });
-  
     } catch (error) {
-      return this.handleError(error, res);
+      console.error('Payment confirmation error:', error);
+      return res.status(error.status || 500).json({
+        success: false,
+        message: error.message || 'Failed to confirm payment'
+      });
     }
   }
 

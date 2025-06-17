@@ -5,6 +5,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const restaurantController = require('../controllers/RestaurantController');
 const { protect } = require('../middleware/auth');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // ‼️ STEP 1: Import the specific middleware, not the entire module
 const { restaurantUpload } = require('../middleware/upload');
@@ -50,6 +51,43 @@ router.post('/verify-otp', verifyOTP);
 
 // Payment route
 router.post('/create-payment-intent', createPaymentIntent);
+
+// Create checkout session for restaurant registration
+router.post('/create-checkout-session', async (req, res) => {
+  try {
+    const { amount, email, restaurantId } = req.body;
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Restaurant Registration Fee',
+              description: 'One-time registration fee for restaurant partners',
+            },
+            unit_amount: amount || 5000, // Default to $50.00 if not specified
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${process.env.CLIENT_URL}/registration-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.CLIENT_URL}/restaurant-registration`,
+      metadata: {
+        registration_type: 'restaurant',
+        email: email,
+        restaurantId: restaurantId
+      }
+    });
+
+    res.json({ id: session.id });
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({ error: 'Failed to create checkout session' });
+  }
+});
 
 // Register new restaurant
 // ‼️ STEP 2: Use the 'restaurantUpload' variable directly.
