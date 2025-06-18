@@ -130,6 +130,7 @@ export default function LoginPage() {
               <p><strong>Email:</strong> admin@winnger.com</p>
               <p><strong>Password:</strong> admin123</p>
             </div>
+            
           </div>*/}
         </form>
       </div>
