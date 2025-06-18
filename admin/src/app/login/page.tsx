@@ -123,15 +123,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Demo Credentials */}
-          {/*<div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm font-medium text-blue-900 mb-2">Demo Credentials:</p>
-            <div className="text-xs text-blue-700 space-y-1">
-              <p><strong>Email:</strong> admin@winnger.com</p>
-              <p><strong>Password:</strong> admin123</p>
-            </div>
-            
-          </div>*/}
+        
         </form>
       </div>
     </div>
