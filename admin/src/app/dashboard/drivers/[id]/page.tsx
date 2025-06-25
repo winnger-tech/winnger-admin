@@ -1,9 +1,10 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, MapPin, Truck, Calendar, Phone, Mail, FileText, CheckCircle, XCircle } from 'lucide-react'
 import { useDriver, useUpdateDriverStatus, useUpdateDriverPayment } from '@/hooks'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import type { Driver } from '@/types'
 
 export default function DriverDetailPage() {
@@ -14,6 +15,11 @@ export default function DriverDetailPage() {
   const { data: driverData, isLoading, error } = useDriver(driverId)
   const updateStatusMutation = useUpdateDriverStatus()
   const updatePaymentMutation = useUpdateDriverPayment()
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    type: 'approve' | 'reject'
+  }>({ isOpen: false, type: 'approve' })
 
   const driver = driverData?.data
 
@@ -43,9 +49,15 @@ export default function DriverDetailPage() {
     }
   }
 
-  const handleStatusUpdate = async (status: 'approved' | 'rejected', remarks?: string) => {
+  const handleStatusUpdate = async (status: 'approved' | 'rejected', reason?: string) => {
     try {
-      await updateStatusMutation.mutateAsync({ id: driverId, status, remarks })
+      await updateStatusMutation.mutateAsync({ 
+        id: driverId, 
+        status, 
+        reason,
+        notes: reason ? `Status changed to ${status}: ${reason}` : `Status changed to ${status}`
+      })
+      setConfirmDialog({ isOpen: false, type: 'approve' })
     } catch (err) {
       console.error('Error updating status:', err)
     }
@@ -57,6 +69,10 @@ export default function DriverDetailPage() {
     } catch (err) {
       console.error('Error updating payment status:', err)
     }
+  }
+
+  const openConfirmDialog = (type: 'approve' | 'reject') => {
+    setConfirmDialog({ isOpen: true, type })
   }
 
   if (isLoading) {
@@ -116,7 +132,7 @@ export default function DriverDetailPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">Date of Birth</label>
-                <p className="text-gray-900">{new Date(driver.dateOfBirth).toLocaleDateString()}</p>
+                <p className="text-gray-900">{driver.dateOfBirth ? new Date(driver.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">Email</label>
@@ -281,7 +297,7 @@ export default function DriverDetailPage() {
               {driver.status === 'pending' && (
                 <>
                   <button
-                    onClick={() => handleStatusUpdate('approved')}
+                    onClick={() => openConfirmDialog('approve')}
                     disabled={updateStatusMutation.isPending}
                     className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                   >
@@ -289,7 +305,7 @@ export default function DriverDetailPage() {
                     Approve Driver
                   </button>
                   <button
-                    onClick={() => handleStatusUpdate('rejected')}
+                    onClick={() => openConfirmDialog('reject')}
                     disabled={updateStatusMutation.isPending}
                     className="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
                   >
@@ -297,6 +313,16 @@ export default function DriverDetailPage() {
                     Reject Driver
                   </button>
                 </>
+              )}
+              {driver.status === 'rejected' && (
+                <button
+                  onClick={() => openConfirmDialog('approve')}
+                  disabled={updateStatusMutation.isPending}
+                  className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Re-approve Driver
+                </button>
               )}
             </div>
           </div>
@@ -366,6 +392,23 @@ export default function DriverDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, type: 'approve' })}
+        onConfirm={(reason) => handleStatusUpdate(confirmDialog.type === 'approve' ? 'approved' : 'rejected', reason)}
+        title={confirmDialog.type === 'approve' ? 'Approve Driver' : 'Reject Driver'}
+        message={
+          confirmDialog.type === 'approve'
+            ? `Are you sure you want to approve ${driver.firstName} ${driver.lastName}? This will change their status to approved.`
+            : `Are you sure you want to reject ${driver.firstName} ${driver.lastName}? This will change their status to rejected.`
+        }
+        confirmText={confirmDialog.type === 'approve' ? 'Approve' : 'Reject'}
+        type={confirmDialog.type}
+        showReasonInput={confirmDialog.type === 'reject'}
+        loading={updateStatusMutation.isPending}
+      />
     </div>
   )
 } 

@@ -1,9 +1,10 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, MapPin, Store, Calendar, Phone, Mail, FileText, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
 import { useRestaurant, useUpdateRestaurantStatus, useUpdateRestaurantPayment } from '@/hooks'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import type { Restaurant } from '@/types'
 
 export default function RestaurantDetailPage() {
@@ -14,6 +15,11 @@ export default function RestaurantDetailPage() {
   const { data: restaurantData, isLoading, error } = useRestaurant(restaurantId)
   const updateStatusMutation = useUpdateRestaurantStatus()
   const updatePaymentMutation = useUpdateRestaurantPayment()
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    type: 'approve' | 'reject'
+  }>({ isOpen: false, type: 'approve' })
 
   const restaurant = restaurantData?.data
 
@@ -43,9 +49,15 @@ export default function RestaurantDetailPage() {
     }
   }
 
-  const handleStatusUpdate = async (status: 'approved' | 'rejected', remarks?: string) => {
+  const handleStatusUpdate = async (status: 'approved' | 'rejected', reason?: string) => {
     try {
-      await updateStatusMutation.mutateAsync({ id: restaurantId, status, remarks })
+      await updateStatusMutation.mutateAsync({ 
+        id: restaurantId, 
+        status, 
+        reason,
+        notes: reason ? `Status changed to ${status}: ${reason}` : `Status changed to ${status}`
+      })
+      setConfirmDialog({ isOpen: false, type: 'approve' })
     } catch (err) {
       console.error('Error updating status:', err)
     }
@@ -57,6 +69,10 @@ export default function RestaurantDetailPage() {
     } catch (err) {
       console.error('Error updating payment status:', err)
     }
+  }
+
+  const openConfirmDialog = (type: 'approve' | 'reject') => {
+    setConfirmDialog({ isOpen: true, type })
   }
 
   if (isLoading) {
@@ -271,7 +287,7 @@ export default function RestaurantDetailPage() {
               {restaurant.status === 'pending' && (
                 <>
                   <button
-                    onClick={() => handleStatusUpdate('approved')}
+                    onClick={() => openConfirmDialog('approve')}
                     disabled={updateStatusMutation.isPending}
                     className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                   >
@@ -279,7 +295,7 @@ export default function RestaurantDetailPage() {
                     Approve Restaurant
                   </button>
                   <button
-                    onClick={() => handleStatusUpdate('rejected')}
+                    onClick={() => openConfirmDialog('reject')}
                     disabled={updateStatusMutation.isPending}
                     className="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
                   >
@@ -287,6 +303,16 @@ export default function RestaurantDetailPage() {
                     Reject Restaurant
                   </button>
                 </>
+              )}
+              {restaurant.status === 'rejected' && (
+                <button
+                  onClick={() => openConfirmDialog('approve')}
+                  disabled={updateStatusMutation.isPending}
+                  className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Re-approve Restaurant
+                </button>
               )}
             </div>
           </div>
@@ -356,6 +382,23 @@ export default function RestaurantDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, type: 'approve' })}
+        onConfirm={(reason) => handleStatusUpdate(confirmDialog.type === 'approve' ? 'approved' : 'rejected', reason)}
+        title={confirmDialog.type === 'approve' ? 'Approve Restaurant' : 'Reject Restaurant'}
+        message={
+          confirmDialog.type === 'approve'
+            ? `Are you sure you want to approve ${restaurant.restaurantName}? This will change their status to approved.`
+            : `Are you sure you want to reject ${restaurant.restaurantName}? This will change their status to rejected.`
+        }
+        confirmText={confirmDialog.type === 'approve' ? 'Approve' : 'Reject'}
+        type={confirmDialog.type}
+        showReasonInput={confirmDialog.type === 'reject'}
+        loading={updateStatusMutation.isPending}
+      />
     </div>
   )
 } 

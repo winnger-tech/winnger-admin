@@ -1,18 +1,38 @@
 export interface Driver {
     id: string
     firstName: string
+    middleName?: string
     lastName: string
     email: string
     cellNumber: string
+    dateOfBirth?: string
+    streetNameNumber?: string
+    appUniteNumber?: string
+    city: string
+    province: string
+    postalCode?: string
     status: 'pending' | 'approved' | 'rejected'
     paymentStatus: 'pending' | 'completed' | 'failed'
     createdAt: string
     updatedAt: string
     vehicleType: string
+    vehicleMake?: string
+    vehicleModel?: string
     deliveryType: string
-    city: string
-    province: string
+    yearOfManufacture?: number
+    vehicleColor?: string
+    vehicleLicensePlate?: string
+    driversLicenseClass?: string
     profilePhotoUrl?: string
+    driversLicenseFrontUrl?: string
+    driversLicenseBackUrl?: string
+    vehicleRegistrationUrl?: string
+    vehicleInsuranceUrl?: string
+    drivingAbstractUrl?: string
+    drivingAbstractDate?: string
+    criminalBackgroundCheckUrl?: string
+    criminalBackgroundCheckDate?: string
+    remarks?: string
   }
   
   export interface Restaurant {

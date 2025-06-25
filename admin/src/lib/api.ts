@@ -118,6 +118,16 @@ class AdminApiClient {
     return response.data
   }
 
+  async getRestaurantsDetailed(params?: {
+    status?: string
+    paymentStatus?: string
+    startDate?: string
+    endDate?: string
+  }): Promise<ApiResponse<Restaurant[]>> {
+    const response = await api.get('/admin/restaurants/detailed', { params })
+    return response.data
+  }
+
   async getRestaurantById(id: string): Promise<ApiResponse<Restaurant>> {
     const response = await api.get(`/admin/restaurants/${id}`)
     return response.data
@@ -126,11 +136,13 @@ class AdminApiClient {
   async updateDriverStatus(
     id: string,
     status: string,
-    remarks?: string
+    reason?: string,
+    notes?: string
   ): Promise<ApiResponse<Driver>> {
     const response = await api.put(`/admin/drivers/${id}/status`, {
       status,
-      remarks,
+      reason,
+      notes,
     })
     return response.data
   }
@@ -146,11 +158,13 @@ class AdminApiClient {
   async updateRestaurantStatus(
     id: string,
     status: string,
-    remarks?: string
+    reason?: string,
+    notes?: string
   ): Promise<ApiResponse<Restaurant>> {
     const response = await api.put(`/admin/restaurants/${id}/status`, {
       status,
-      remarks,
+      reason,
+      notes,
     })
     return response.data
   }

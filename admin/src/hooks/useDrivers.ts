@@ -46,8 +46,8 @@ export function useUpdateDriverStatus() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ id, status, remarks }: { id: string; status: string; remarks?: string }) =>
-      adminApi.updateDriverStatus(id, status, remarks),
+    mutationFn: ({ id, status, reason, notes }: { id: string; status: string; reason?: string; notes?: string }) =>
+      adminApi.updateDriverStatus(id, status, reason, notes),
     onSuccess: () => {
       // Invalidate and refetch drivers queries
       queryClient.invalidateQueries({ queryKey: ['drivers'] })
