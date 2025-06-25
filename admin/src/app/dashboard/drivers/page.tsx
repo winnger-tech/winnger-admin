@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { Search, DollarSign, CheckCircle, XCircle, MapPin, Truck } from 'lucide-react'
 import { adminApi } from '@/lib/api'
 import type { Driver } from '@/types'
+import { useRouter } from 'next/navigation'
 
 const statusOptions = ['All', 'Pending', 'Approved', 'Rejected'] as const
 const paymentStatusOptions = ['All', 'Pending', 'Completed', 'Failed'] as const
@@ -17,6 +18,7 @@ export default function DriversPage() {
   const [error, setError] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const router = useRouter();
 
   useEffect(() => {
     const fetchDrivers = async () => {
@@ -175,7 +177,15 @@ export default function DriversPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredDrivers.map((driver) => (
-                <tr key={driver.id} className="hover:bg-gray-50">
+                <tr
+                  key={driver.id}
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={e => {
+                    // Prevent row click if an action button was clicked
+                    if ((e.target as HTMLElement).closest('button')) return;
+                    router.push(`/dashboard/drivers/${driver.id}`);
+                  }}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {driver.profilePhotoUrl && (
@@ -218,7 +228,7 @@ export default function DriversPage() {
                     <div className="flex space-x-2">
                       {driver.paymentStatus !== 'completed' && (
                         <button
-                          onClick={() => handlePaymentAction(driver.id, 'approve')}
+                          onClick={e => { e.stopPropagation(); handlePaymentAction(driver.id, 'approve'); }}
                           className="text-green-600 hover:text-green-900"
                           title="Approve Payment"
                         >
@@ -227,7 +237,7 @@ export default function DriversPage() {
                       )}
                       {driver.paymentStatus === 'pending' && (
                         <button
-                          onClick={() => handlePaymentAction(driver.id, 'reject')}
+                          onClick={e => { e.stopPropagation(); handlePaymentAction(driver.id, 'reject'); }}
                           className="text-red-600 hover:text-red-900"
                           title="Reject Payment"
                         >
@@ -236,7 +246,7 @@ export default function DriversPage() {
                       )}
                       {driver.paymentStatus === 'failed' && (
                         <button
-                          onClick={() => handlePaymentAction(driver.id, 'retry')}
+                          onClick={e => { e.stopPropagation(); handlePaymentAction(driver.id, 'retry'); }}
                           className="text-blue-600 hover:text-blue-900"
                           title="Retry Payment"
                         >

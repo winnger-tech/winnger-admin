@@ -3,6 +3,7 @@ import './globals.css'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/context/AuthContext'
 import ExtensionHandler from '@/components/ExtensionHandler'
+import { QueryProvider } from '@/providers/QueryProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,9 +21,11 @@ export default function RootLayout({
     <html lang="en" className={inter.className}>
       <body className="bg-gray-50">
         <ExtensionHandler />
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </QueryProvider>
         <div id="modal-root" />
       </body>
     </html>

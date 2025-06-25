@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { Driver, Restaurant, DashboardStats, ApiResponse } from '@/types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_URL ? `${process.env.NEXT_PUBLIC_URL}/api` : 'http://localhost:5001/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_URL ? `${process.env.NEXT_PUBLIC_URL}/api` : 'http://localhost:5000/api'
 
 // Create axios instance with default config
 const api = axios.create({
@@ -103,6 +103,11 @@ class AdminApiClient {
     return response.data
   }
 
+  async getDriverById(id: string): Promise<ApiResponse<Driver>> {
+    const response = await api.get(`/admin/drivers/${id}`)
+    return response.data
+  }
+
   async getRestaurants(params?: {
     page?: number
     limit?: number
@@ -110,6 +115,11 @@ class AdminApiClient {
     search?: string
   }): Promise<ApiResponse<Restaurant[]>> {
     const response = await api.get('/admin/restaurants', { params })
+    return response.data
+  }
+
+  async getRestaurantById(id: string): Promise<ApiResponse<Restaurant>> {
+    const response = await api.get(`/admin/restaurants/${id}`)
     return response.data
   }
 
@@ -142,6 +152,14 @@ class AdminApiClient {
       status,
       remarks,
     })
+    return response.data
+  }
+
+  async updateRestaurantPayment(
+    id: string,
+    action: 'approve' | 'reject' | 'retry'
+  ): Promise<ApiResponse<Restaurant>> {
+    const response = await api.put(`/admin/restaurants/${id}/payment`, { action })
     return response.data
   }
 

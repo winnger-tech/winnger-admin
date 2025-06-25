@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext'; 
@@ -12,18 +12,15 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { isAuthenticated, logout, user    } = useAuth();
-  useEffect(() => {
-    // Check if user is authenticated
-    const isAuthenticated = localStorage.getItem('isAuthenticated')
-    if (!isAuthenticated) {
+  const { isAuthenticated, logout, user } = useAuth();
+
+  React.useEffect(() => {
+    if (isAuthenticated === false) {
       router.push('/login')
     }
-  }, [isAuthenticated,router])
+  }, [isAuthenticated, router])
 
   const handleLogout = () => {
-    // localStorage.removeItem('isAuthenticated')
-    // router.push('/login')
     logout();
   }
   if (!isAuthenticated) {

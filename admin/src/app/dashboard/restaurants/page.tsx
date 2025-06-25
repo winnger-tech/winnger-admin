@@ -1,21 +1,12 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { Search, DollarSign, CheckCircle, XCircle } from 'lucide-react'
-import axios from 'axios'
-
-interface Restaurant {
-  id: number
-  name: string
-  email: string
-  phone: string
-  status: 'Submitted' | 'Paid' | 'Verified'
-  paymentStatus: 'Pending' | 'Paid' | 'Failed'
-  amount: number
-  createdAt: string
-}
+import { adminApi } from '@/lib/api'
+import { useRouter } from 'next/navigation'
+import type { Restaurant } from '@/types'
 
 const statusOptions = ['All', 'Submitted', 'Paid', 'Verified'] as const
-const paymentStatusOptions = ['All', 'Pending', 'Paid', 'Failed'] as const
+const paymentStatusOptions = ['All', 'Pending', 'Completed', 'Failed'] as const
 
 export default function RestaurantsPage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -24,22 +15,18 @@ export default function RestaurantsPage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const router = useRouter();
 
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
         setLoading(true)
         setError('')
-        const token = localStorage.getItem('auth_token')
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:5001'}/api/admin/restaurants`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: {
-            status: selectedStatus !== 'All' ? selectedStatus.toLowerCase() : undefined,
-            paymentStatus: selectedPaymentStatus !== 'All' ? selectedPaymentStatus.toLowerCase() : undefined,
-            search: searchQuery
-          }
+        const response = await adminApi.getRestaurants({
+          status: selectedStatus !== 'All' ? selectedStatus.toLowerCase() : undefined,
+          search: searchQuery
         })
-        setRestaurants(res.data.data)
+        setRestaurants(response.data || [])
       } catch (err) {
         setError('Failed to fetch restaurants')
         console.error('Error fetching restaurants:', err)
@@ -52,24 +39,24 @@ export default function RestaurantsPage() {
 
   const filteredRestaurants = restaurants.filter(restaurant => {
     const matchesSearch = 
-      restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.phone.includes(searchQuery)
+      (restaurant.restaurantName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (restaurant.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (restaurant.phone || '').includes(searchQuery)
     
-    const matchesStatus = selectedStatus === 'All' || restaurant.status === selectedStatus
-    const matchesPaymentStatus = selectedPaymentStatus === 'All' || restaurant.paymentStatus === selectedPaymentStatus
+    const matchesStatus = selectedStatus === 'All' || restaurant.status === selectedStatus.toLowerCase()
+    const matchesPaymentStatus = selectedPaymentStatus === 'All' || restaurant.paymentStatus === selectedPaymentStatus.toLowerCase()
 
     return matchesSearch && matchesStatus && matchesPaymentStatus
   })
 
   const getStatusColor = (status: Restaurant['status']) => {
     switch (status) {
-      case 'Submitted':
+      case 'pending':
         return 'bg-blue-100 text-blue-800'
-      case 'Paid':
+      case 'approved':
         return 'bg-green-100 text-green-800'
-      case 'Verified':
-        return 'bg-purple-100 text-purple-800'
+      case 'rejected':
+        return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
@@ -77,26 +64,21 @@ export default function RestaurantsPage() {
 
   const getPaymentStatusColor = (status: Restaurant['paymentStatus']) => {
     switch (status) {
-      case 'Paid':
+      case 'completed':
         return 'bg-green-100 text-green-800'
-      case 'Pending':
+      case 'pending':
         return 'bg-yellow-100 text-yellow-800'
-      case 'Failed':
+      case 'failed':
         return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const handlePaymentAction = async (restaurantId: number, action: 'approve' | 'reject' | 'retry') => {
+  const handlePaymentAction = async (restaurantId: string, action: 'approve' | 'reject' | 'retry') => {
     try {
       setError('')
-      const token = localStorage.getItem('auth_token')
-      await axios.put(
-        `${process.env.NEXT_PUBLIC_URL || 'http://localhost:5001'}/api/admin/restaurants/${restaurantId}/payment`,
-        { action },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      await adminApi.updateRestaurantPayment(restaurantId, action)
       
       // Update the local state
       setRestaurants(prev => 
@@ -104,7 +86,7 @@ export default function RestaurantsPage() {
           restaurant.id === restaurantId 
             ? { 
                 ...restaurant, 
-                paymentStatus: action === 'approve' ? 'Paid' : action === 'reject' ? 'Failed' : 'Pending'
+                paymentStatus: action === 'approve' ? 'completed' : action === 'reject' ? 'failed' : 'pending'
               } 
             : restaurant
         )
@@ -181,16 +163,22 @@ export default function RestaurantsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredRestaurants.map((restaurant) => (
-                <tr key={restaurant.id} className="hover:bg-gray-50">
+                <tr
+                  key={restaurant.id}
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={e => {
+                    if ((e.target as HTMLElement).closest('button')) return;
+                    router.push(`/dashboard/restaurants/${restaurant.id}`);
+                  }}
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {restaurant.name}
+                    {restaurant.restaurantName || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{restaurant.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{restaurant.phone}</td>
@@ -199,9 +187,6 @@ export default function RestaurantsPage() {
                       {restaurant.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${restaurant.amount.toFixed(2)}
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(restaurant.paymentStatus)}`}>
                       {restaurant.paymentStatus}
@@ -209,17 +194,17 @@ export default function RestaurantsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex space-x-2">
-                      {restaurant.paymentStatus === 'Pending' && (
+                      {restaurant.paymentStatus === 'pending' && (
                         <>
                           <button
-                            onClick={() => handlePaymentAction(restaurant.id, 'approve')}
+                            onClick={e => { e.stopPropagation(); handlePaymentAction(restaurant.id, 'approve'); }}
                             className="text-green-600 hover:text-green-900"
                             title="Approve Payment"
                           >
                             <CheckCircle className="h-5 w-5" />
                           </button>
                           <button
-                            onClick={() => handlePaymentAction(restaurant.id, 'reject')}
+                            onClick={e => { e.stopPropagation(); handlePaymentAction(restaurant.id, 'reject'); }}
                             className="text-red-600 hover:text-red-900"
                             title="Reject Payment"
                           >
@@ -227,9 +212,9 @@ export default function RestaurantsPage() {
                           </button>
                         </>
                       )}
-                      {restaurant.paymentStatus === 'Failed' && (
+                      {restaurant.paymentStatus === 'failed' && (
                         <button
-                          onClick={() => handlePaymentAction(restaurant.id, 'retry')}
+                          onClick={e => { e.stopPropagation(); handlePaymentAction(restaurant.id, 'retry'); }}
                           className="text-blue-600 hover:text-blue-900"
                           title="Retry Payment"
                         >
