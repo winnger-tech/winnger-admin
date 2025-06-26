@@ -1,13 +1,23 @@
 import axios from 'axios'
 import type { Driver, Restaurant, DashboardStats, ApiResponse } from '@/types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_URL ? `${process.env.NEXT_PUBLIC_URL}/api` : 'http://localhost:5000/api'
+// Ensure we have a properly formatted base URL without trailing slashes
+const BASE_URL = process.env.NEXT_PUBLIC_URL 
+  ? process.env.NEXT_PUBLIC_URL.endsWith('/') 
+    ? process.env.NEXT_PUBLIC_URL.slice(0, -1) 
+    : process.env.NEXT_PUBLIC_URL
+  : 'http://localhost:5000';
+
+const API_BASE_URL = `${BASE_URL}/api`;
+
+// Log API base URL to help with debugging
+console.log('API Base URL:', API_BASE_URL);
 
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
-  withCredentials: true, // Important for CORS
+  withCredentials: false, // Changed to false to avoid CORS issues with credentials
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'

@@ -27,7 +27,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:5000'}/api/admin/login`, {
+      // Format the base URL correctly
+      const baseUrl = process.env.NEXT_PUBLIC_URL 
+        ? process.env.NEXT_PUBLIC_URL.endsWith('/') 
+          ? process.env.NEXT_PUBLIC_URL.slice(0, -1) 
+          : process.env.NEXT_PUBLIC_URL
+        : 'http://localhost:5000';
+      
+      const response = await fetch(`${baseUrl}/api/admin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -38,12 +45,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json()
 
       if (response.ok) {
+        console.log('Login successful:', data);
         localStorage.setItem('auth_token', data.token)
         setIsAuthenticated(true)
-        setUser(data.user)
+        setUser(data.user || data.data) // Handle both response formats
         router.push('/dashboard')
         return { success: true }
       } else {
+        console.error('Login failed:', data);
         return { success: false, message: data.message || 'Login failed' }
       }
     } catch (error) {

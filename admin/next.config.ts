@@ -8,6 +8,10 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Ensure environment variables are correctly handled
+  env: {
+    NEXT_PUBLIC_URL: process.env.NEXT_PUBLIC_URL || 'http://localhost:5000',
+  },
   // Security headers for admin panel
   async headers() {
     return [
