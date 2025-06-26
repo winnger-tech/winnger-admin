@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, FormEvent } from 'react'
 import { Search, DollarSign, CheckCircle, XCircle } from 'lucide-react'
 import { adminApi } from '@/lib/api'
 import { useRouter } from 'next/navigation'
@@ -128,19 +128,21 @@ export default function RestaurantsPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Search restaurants..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                // The debounced function will be called after the user stops typing
-              }}
-            />
-          </div>
+          <form onSubmit={(e: FormEvent<HTMLFormElement>) => e.preventDefault()}>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                type="text"
+                placeholder="Search restaurants..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  // The debounced function will be called after the user stops typing
+                }}
+              />
+            </div>
+          </form>
         </div>
         <div className="sm:w-48">
           <select
