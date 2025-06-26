@@ -1,21 +1,36 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Search, DollarSign, CheckCircle, XCircle } from 'lucide-react'
 import { adminApi } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import type { Restaurant } from '@/types'
+import { debounce } from '@/lib/utils'
 
 const statusOptions = ['All', 'Submitted', 'Paid', 'Verified'] as const
 const paymentStatusOptions = ['All', 'Pending', 'Completed', 'Failed'] as const
 
 export default function RestaurantsPage() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<typeof statusOptions[number]>('All')
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<typeof paymentStatusOptions[number]>('All')
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter();
+  
+  // Debounce search query updates
+  const debouncedSetSearch = useCallback(
+    debounce((value: string) => {
+      setDebouncedSearchQuery(value);
+    }, 500),
+    []
+  );
+
+  // Update the debounced search query when the user types
+  useEffect(() => {
+    debouncedSetSearch(searchQuery);
+  }, [searchQuery, debouncedSetSearch]);
 
   useEffect(() => {
     const fetchRestaurants = async () => {
@@ -24,7 +39,7 @@ export default function RestaurantsPage() {
         setError('')
         const response = await adminApi.getRestaurants({
           status: selectedStatus !== 'All' ? selectedStatus.toLowerCase() : undefined,
-          search: searchQuery
+          search: debouncedSearchQuery.trim() ? debouncedSearchQuery : undefined
         })
         setRestaurants(response.data || [])
       } catch (err) {
@@ -35,18 +50,13 @@ export default function RestaurantsPage() {
       }
     }
     fetchRestaurants()
-  }, [searchQuery, selectedStatus, selectedPaymentStatus])
+  }, [debouncedSearchQuery, selectedStatus, selectedPaymentStatus])
 
+  // Since we're using server-side filtering for search and status, we only need to filter by paymentStatus client-side
   const filteredRestaurants = restaurants.filter(restaurant => {
-    const matchesSearch = 
-      (restaurant.restaurantName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (restaurant.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (restaurant.phone || '').includes(searchQuery)
-    
-    const matchesStatus = selectedStatus === 'All' || restaurant.status === selectedStatus.toLowerCase()
-    const matchesPaymentStatus = selectedPaymentStatus === 'All' || restaurant.paymentStatus === selectedPaymentStatus.toLowerCase()
-
-    return matchesSearch && matchesStatus && matchesPaymentStatus
+    // Only filter by paymentStatus since we're filtering by search and status on the server
+    const matchesPaymentStatus = selectedPaymentStatus === 'All' || restaurant.paymentStatus === selectedPaymentStatus.toLowerCase();
+    return matchesPaymentStatus;
   })
 
   const getStatusColor = (status: Restaurant['status']) => {
@@ -125,7 +135,10 @@ export default function RestaurantsPage() {
               placeholder="Search restaurants..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                // The debounced function will be called after the user stops typing
+              }}
             />
           </div>
         </div>

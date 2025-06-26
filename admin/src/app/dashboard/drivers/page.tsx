@@ -1,16 +1,18 @@
 // ✅ Updated drivers/page.tsx
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Search, DollarSign, CheckCircle, XCircle, MapPin, Truck } from 'lucide-react'
 import { adminApi } from '@/lib/api'
 import type { Driver } from '@/types'
 import { useRouter } from 'next/navigation'
+import { debounce } from '@/lib/utils'
 
 const statusOptions = ['All', 'Pending', 'Approved', 'Rejected'] as const
 const paymentStatusOptions = ['All', 'Pending', 'Completed', 'Failed'] as const
 
 export default function DriversPage() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<typeof statusOptions[number]>('All')
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<typeof paymentStatusOptions[number]>('All')
   const [drivers, setDrivers] = useState<Driver[]>([])
@@ -19,6 +21,19 @@ export default function DriversPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const router = useRouter();
+
+  // Debounce search query updates
+  const debouncedSetSearch = useCallback(
+    debounce((value: string) => {
+      setDebouncedSearchQuery(value);
+    }, 500),
+    []
+  );
+
+  // Update the debounced search query when the user types
+  useEffect(() => {
+    debouncedSetSearch(searchQuery);
+  }, [searchQuery, debouncedSetSearch]);
 
   useEffect(() => {
     const fetchDrivers = async () => {
@@ -30,6 +45,7 @@ export default function DriversPage() {
           limit: 10,
           status: selectedStatus !== 'All' ? selectedStatus.toLowerCase() : undefined,
           paymentStatus: selectedPaymentStatus !== 'All' ? selectedPaymentStatus.toLowerCase() : undefined,
+          search: debouncedSearchQuery.trim() ? debouncedSearchQuery : undefined,
         })
         setDrivers(response.data || [])
         setTotalPages(response.totalPages || 1)
@@ -41,19 +57,11 @@ export default function DriversPage() {
       }
     }
     fetchDrivers()
-  }, [searchQuery, selectedStatus, selectedPaymentStatus, currentPage])
+  }, [debouncedSearchQuery, selectedStatus, selectedPaymentStatus, currentPage])
 
-  const filteredDrivers = drivers.filter(driver => {
-    const matchesSearch = 
-      `${driver.firstName} ${driver.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      driver.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      driver.cellNumber.includes(searchQuery)
-    
-    const matchesStatus = selectedStatus === 'All' || driver.status === selectedStatus.toLowerCase()
-    const matchesPaymentStatus = selectedPaymentStatus === 'All' || driver.paymentStatus === selectedPaymentStatus.toLowerCase()
-
-    return matchesSearch && matchesStatus && matchesPaymentStatus
-  })
+  // Since filtering is now done on the server, we can directly use the drivers data
+  // This is left as a placeholder in case we need additional client-side filtering
+  const filteredDrivers = drivers
 
   const getStatusColor = (status: Driver['status']) => {
     switch (status) {
@@ -131,7 +139,10 @@ export default function DriversPage() {
               placeholder="Search drivers..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                // The debounced function will be called after the user stops typing
+              }}
             />
           </div>
         </div>
